@@ -1,6 +1,6 @@
-name: Oatmeal
+name: Bynd
 options:
-  bundleIdPrefix: com.oatmeal
+  bundleIdPrefix: com.bynd
   deploymentTarget:
     macOS: "26.0"
   xcodeVersion: "16.0"
@@ -21,7 +21,7 @@ packages:
     path: Packages/Lurker
 
 targets:
-  Oatmeal:
+  Bynd:
     type: application
     platform: macOS
     sources:
@@ -39,11 +39,11 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.oatmeal.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.bynd.app
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
-        PRODUCT_NAME: Oatmeal
-        CODE_SIGN_ENTITLEMENTS: Resources/Oatmeal.entitlements
+        PRODUCT_NAME: Bynd
+        CODE_SIGN_ENTITLEMENTS: Resources/Bynd.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         MACOSX_DEPLOYMENT_TARGET: "26.0"
         SWIFT_VERSION: "5.9"
@@ -51,8 +51,8 @@ targets:
         INFOPLIST_FILE: Resources/Info.plist
         # Signing comes from Config/Signing.xcconfig: ad-hoc unless you add your own certificate.
         CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: "$(OATMEAL_SIGN_IDENTITY)"
-        DEVELOPMENT_TEAM: "$(OATMEAL_TEAM)"
+        CODE_SIGN_IDENTITY: "$(BYND_SIGN_IDENTITY)"
+        DEVELOPMENT_TEAM: "$(BYND_TEAM)"
       configs:
         debug:
           ENABLE_HARDENED_RUNTIME: "NO"
@@ -61,8 +61,8 @@ targets:
           OTHER_CODE_SIGN_FLAGS: "--timestamp"
           CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
     configFiles:
-      Debug: Config/Oatmeal.xcconfig
-      Release: Config/Oatmeal.xcconfig
+      Debug: Config/Bynd.xcconfig
+      Release: Config/Bynd.xcconfig
     dependencies:
       - package: FluidAudio
       - package: KeyboardShortcuts
@@ -75,47 +75,48 @@ targets:
         product: LurkerEngine
     scheme:
       testTargets:
-        - OatmealTests
+        - ByndTests
     info:
       path: Resources/Info.plist
       properties:
-        CFBundleName: Oatmeal
-        CFBundleDisplayName: Oatmeal
+        CFBundleName: Bynd
+        CFBundleDisplayName: Bynd
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleIconFile: AppIcon
         LSApplicationCategoryType: public.app-category.productivity
-        OatmealSite: "$(OATMEAL_SITE)"
+        ByndSite: "$(BYND_SITE)"
         ATSApplicationFontsPath: Fonts
         CFBundleURLTypes:
-          - CFBundleURLName: com.oatmeal.app.links
+          - CFBundleURLName: com.bynd.app.links
             CFBundleURLSchemes:
+              - bynd
               - oatmeal
-        NSMicrophoneUsageDescription: "Oatmeal turns what you say into text and meeting notes, transcribed on your Mac."
-        NSSpeechRecognitionUsageDescription: "Oatmeal turns what you say into text with Apple's on-device speech recognition when you choose Apple Speech."
-        NSCalendarsUsageDescription: "Oatmeal names your meeting notes after the event in your calendar."
-        NSCalendarsFullAccessUsageDescription: "Oatmeal names your meeting notes after the event in your calendar."
-        NSAudioCaptureUsageDescription: "Oatmeal records meeting audio on your Mac so it can write notes. No bot joins the call."
-        NSCameraUsageDescription: "Oatmeal puts your face in a bubble on screen recordings, when you turn the camera on."
+        NSMicrophoneUsageDescription: "Bynd turns what you say into text and meeting notes, transcribed on your Mac."
+        NSSpeechRecognitionUsageDescription: "Bynd turns what you say into text with Apple's on-device speech recognition when you choose Apple Speech."
+        NSCalendarsUsageDescription: "Bynd names your meeting notes after the event in your calendar."
+        NSCalendarsFullAccessUsageDescription: "Bynd names your meeting notes after the event in your calendar."
+        NSAudioCaptureUsageDescription: "Bynd records meeting audio on your Mac so it can write notes. No bot joins the call."
+        NSCameraUsageDescription: "Bynd puts your face in a bubble on screen recordings, when you turn the camera on."
 
-  OatmealTests:
+  ByndTests:
     type: bundle.unit-test
     platform: macOS
     sources:
       - path: Tests
     dependencies:
-      - target: Oatmeal
+      - target: Bynd
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.oatmeal.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.bynd.app.tests
         MACOSX_DEPLOYMENT_TARGET: "26.0"
         SWIFT_VERSION: "5.9"
         BUNDLE_LOADER: "$(TEST_HOST)"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Oatmeal.app/Contents/MacOS/Oatmeal"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Bynd.app/Contents/MacOS/Bynd"
         CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: "$(OATMEAL_SIGN_IDENTITY)"
-        DEVELOPMENT_TEAM: "$(OATMEAL_TEAM)"
+        CODE_SIGN_IDENTITY: "$(BYND_SIGN_IDENTITY)"
+        DEVELOPMENT_TEAM: "$(BYND_TEAM)"
     configFiles:
       Debug: Config/Signing.xcconfig
       Release: Config/Signing.xcconfig

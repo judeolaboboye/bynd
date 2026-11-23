@@ -22,7 +22,7 @@ final class SystemAudioTap: @unchecked Sendable {
     private let reportedRate = LockedValue<Double>(48_000)
     private let calibrator = RateCalibrator()
     private var listeners: [(AudioObjectID, AudioObjectPropertyAddress, AudioObjectPropertyListenerBlock)] = []
-    private let queue = DispatchQueue(label: "com.oatmeal.meeting.tap", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.bynd.meeting.tap", qos: .userInitiated)
 
     /// Begin tapping. `onSamples` gets mono 16 kHz Float32 on the tap queue.
     func start(onSamples: @escaping ([Float]) -> Void) throws {
@@ -63,7 +63,7 @@ final class SystemAudioTap: @unchecked Sendable {
         let exclude = CoreAudioProps.processObject(for: getpid()).map { [$0] } ?? []
         let description = CATapDescription(stereoGlobalTapButExcludeProcesses: exclude)
         description.uuid = UUID()
-        description.name = "Oatmeal meeting tap"
+        description.name = "Bynd meeting tap"
         description.isPrivate = true
         description.muteBehavior = .unmuted
         try check(AudioHardwareCreateProcessTap(description, &tapID), "create process tap")
@@ -89,7 +89,7 @@ final class SystemAudioTap: @unchecked Sendable {
             throw TapError.failed("no default output device")
         }
         let config: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Oatmeal Meeting Tap",
+            kAudioAggregateDeviceNameKey: "Bynd Meeting Tap",
             kAudioAggregateDeviceUIDKey: UUID().uuidString,
             kAudioAggregateDeviceMainSubDeviceKey: outputUID,
             kAudioAggregateDeviceIsPrivateKey: true,

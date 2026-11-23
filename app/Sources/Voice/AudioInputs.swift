@@ -9,7 +9,7 @@ struct AudioInputDevice: Identifiable, Hashable, Sendable {
     let audioID: AudioDeviceID
 }
 
-/// Microphones on this Mac and the one Oatmeal listens with. "System default" follows whatever
+/// Microphones on this Mac and the one Bynd listens with. "System default" follows whatever
 /// macOS has selected. A picked mic sticks until it's unplugged; then the default takes over
 /// until it comes back.
 @MainActor
@@ -44,7 +44,7 @@ final class AudioInputs: ObservableObject {
     /// The chosen mic isn't connected right now, so the system default is being used.
     var selectedMissing: Bool { selectedUID.map { uid in !devices.contains { $0.id == uid } } ?? false }
 
-    /// What Oatmeal is listening with right now.
+    /// What Bynd is listening with right now.
     var activeName: String {
         if let uid = selectedUID, let d = devices.first(where: { $0.id == uid }) { return d.name }
         return defaultName
@@ -64,7 +64,7 @@ final class AudioInputs: ObservableObject {
             guard hasInput(id),
                   let uid = CoreAudioProps.string(id, kAudioDevicePropertyDeviceUID),
                   let name = CoreAudioProps.string(id, kAudioObjectPropertyName),
-                  !name.hasPrefix("Oatmeal")   // our own private meeting tap
+                  !name.hasPrefix("Bynd")   // our own private meeting tap
             else { return nil }
             return AudioInputDevice(id: uid, name: name, audioID: id)
         }

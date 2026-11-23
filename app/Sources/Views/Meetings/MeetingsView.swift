@@ -84,7 +84,7 @@ private struct MeetingBrowser: View {
                     || String(decoding: n.transcriptData, as: UTF8.self).lowercased().contains(q)
             }
         } else if isRecent && weekOnly {
-            let start = Calendar.oatmeal.dateInterval(of: .weekOfYear, for: Date())!.start
+            let start = Calendar.bynd.dateInterval(of: .weekOfYear, for: Date())!.start
             base = allNotes.filter { $0.startedAt >= start }
         } else if isRecent {
             base = Array(allNotes.prefix(100))
@@ -234,7 +234,7 @@ private struct MeetingBrowser: View {
             if searching {
                 hint("Nothing matches \u{201C}\(query)\u{201D}", "Try a name, a word someone said, or a meeting title.")
             } else if allNotes.isEmpty {
-                hint("No meetings yet", "When a call starts, Oatmeal offers to take notes. No bot joins, and everything stays on your Mac. Record a meeting from the sidebar, or press right \u{2325} M.")
+                hint("No meetings yet", "When a call starts, Bynd offers to take notes. No bot joins, and everything stays on your Mac. Record a meeting from the sidebar, or press right \u{2325} M.")
             } else if current != nil {
                 hint("This folder is empty", "Drag meetings or folders here, or right-click a meeting and choose Move to.")
             } else {
@@ -705,9 +705,9 @@ struct MeetingDetail: View {
                         }
                         .buttonStyle(.df(.ghost))
                         .disabled(writing)
-                        .help(!mcp.isRunning ? "Turn on Oatmeal\u{2019}s MCP server first (Settings \u{203A} MCP)"
+                        .help(!mcp.isRunning ? "Turn on Bynd\u{2019}s MCP server first (Settings \u{203A} MCP)"
                               : writers.available ? "\(writers.active?.title ?? "Your AI") fixes the transcript and writes Granola-style notes here, on \(writers.active?.plan ?? "your plan")."
-                              : "Copies a prompt for Claude, Cursor or Codex. It writes the notes here through Oatmeal\u{2019}s MCP.")
+                              : "Copies a prompt for Claude, Cursor or Codex. It writes the notes here through Bynd\u{2019}s MCP.")
                         Button {
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.setString(copyText, forType: .string)
@@ -798,7 +798,7 @@ struct MeetingDetail: View {
                 Text(segments.isEmpty ? "Nothing was recorded in this meeting." : "No notes yet.")
                     .font(DF.serif(20))
                 if !segments.isEmpty {
-                    Text("Oatmeal can write Granola-style notes from the transcript and anything you typed.")
+                    Text("Bynd can write Granola-style notes from the transcript and anything you typed.")
                         .font(DF.font(14)).foregroundStyle(DF.muted)
                     Button { createNotes() } label: { Label("Write notes", systemImage: "sparkles") }
                         .buttonStyle(.df(.honey, height: 34)).padding(.top, 4)
@@ -855,13 +855,15 @@ private struct TodayMeetings: View {
                 PanelCloseButton()
             }
             .padding(.top, 20)
-            Text(calendars.anyConnected ? "Turn on auto-record per meeting" : "Connect your calendar to see today\u{2019}s meetings")
+            Text(calendars.anyConnected ? "Switch on the ones you want: Bynd asks before recording each" : "Connect your calendar to see today\u{2019}s meetings")
                 .font(DF.font(12)).foregroundStyle(DF.muted).padding(.bottom, 10)
             if !calendars.anyConnected {
                 SecondaryButton(title: "Allow calendar access", symbol: "calendar") { Task { await calendars.requestAccess() } }
             } else if events.isEmpty {
                 Text("Nothing else on your calendar today.").font(DF.font(13)).foregroundStyle(DF.faint)
             }
+            ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
             ForEach(events) { e in
                 let on = autoRecordRaw.split(separator: "|").contains(Substring(e.id))
                 HStack(spacing: 10) {
@@ -878,11 +880,13 @@ private struct TodayMeetings: View {
                         autoRecordRaw = ids.joined(separator: "|")
                     }))
                     .toggleStyle(.df)
-                    .help("Record this meeting automatically")
+                    .help("Ask \u{201C}Are you starting this meeting?\u{201D} when it starts; it records only if you say yes")
                 }
                 .padding(.vertical, 8)
             }
-            Spacer()
+            }
+            }
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
         .frame(maxHeight: .infinity)
@@ -1028,8 +1032,12 @@ private struct UpNextStrip: View {
 
     private func next(at now: Date) -> CalEvent? {
         guard calendars.anyConnected else { return nil }
-        return calendars.events(on: now).filter { !$0.isAllDay && $0.end > now && $0.start < now.addingTimeInterval(4 * 3600) }
-            .min { $0.start < $1.start }
+        let open = calendars.events(on: now).filter {
+            !$0.isAllDay && $0.end > now && $0.start < now.addingTimeInterval(4 * 3600) && !calendars.isSkipped($0)
+                && autoRecordRaw.split(separator: "|").contains(Substring($0.id))   // only events you switched on
+        }
+        // Happening now (the most recently started) first, otherwise the next to start.
+        return open.filter { $0.start <= now }.max { $0.start < $1.start } ?? open.min { $0.start < $1.start }
     }
 
     private func strip(_ e: CalEvent, now: Date) -> some View {
@@ -1061,11 +1069,14 @@ private struct UpNextStrip: View {
                     if auto { ids.remove(e.id) } else { ids.insert(e.id) }
                     autoRecordRaw = ids.joined(separator: "|")
                 } label: {
-                    if auto { Label("Records when it starts", systemImage: "checkmark") } else { Text("Record when it starts") }
+                    if auto { Label("Asks when it starts", systemImage: "checkmark") } else { Text("Ask when it starts") }
                 }
                 .buttonStyle(.df(.secondary, height: 30))
-                .help(auto ? "Click to stop recording this one automatically" : "Oatmeal starts taking notes when the meeting starts")
+                .help(auto ? "Click to stop asking about this one" : "When it starts, Bynd asks if you\u{2019}re starting it and records only if you say yes")
             }
+            Button { withAnimation(.snappy) { calendars.skip(e) } } label: { Image(systemName: "xmark") }
+                .buttonStyle(.dfIcon(size: 28))
+                .help("Not this one: show the next event on your calendar")
         }
         .padding(.horizontal, 14).padding(.vertical, 11)
         .background(DF.canvas, in: RoundedRectangle(cornerRadius: 8))

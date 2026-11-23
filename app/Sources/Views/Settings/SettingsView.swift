@@ -98,19 +98,16 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var shortcuts: some View {
-        VStack(spacing: 0) {
-            ShortcutRow(keys: ["Hold right ⌥"], what: "Dictate into the app you\u{2019}re in")
-            ShortcutRow(keys: ["Double-tap right ⌥"], what: "Hands-free until you tap again")
-            ShortcutRow(keys: ["Right ⌥", "V"], what: "Paste your last dictation again")
-            ShortcutRow(keys: ["Right ⌥", "M"], what: "Start or stop meeting notes")
-            ShortcutRow(keys: ["Tap right ⌥"], what: "Open or hide Oatmeal")
-            ShortcutRow(keys: ["Esc"], what: "Cancel while listening")
-            ShortcutRow(keys: ["⌘", "N"], what: "Record a meeting")
-            ShortcutRow(keys: ["⌘", "1–2"], what: "Notes, Flow")
-            ShortcutRow(keys: ["⌃", "⌘", "S"], what: "Hide or show the sidebar")
-            ShortcutRow(keys: ["⌘", ","], what: "Settings", last: true)
+        // Same list as the Keys section (ByndKeys), so the two never disagree.
+        ForEach(ByndKeys.groups) { group in
+            Text(group.title).font(DF.font(13, .semibold)).foregroundStyle(DF.muted).padding(.top, 8)
+            VStack(spacing: 0) {
+                ForEach(Array(group.entries.enumerated()), id: \.element.id) { i, e in
+                    ShortcutRow(keys: e.keys, what: e.what, last: i == group.entries.count - 1)
+                }
+            }
+            .dfCard()
         }
-        .dfCard()
     }
 
     @ViewBuilder private var calendarsTab: some View {
@@ -193,7 +190,7 @@ struct SettingsView: View {
     }
 }
 
-private struct ShortcutRow: View {
+struct ShortcutRow: View {
     let keys: [String]
     let what: String
     var last = false

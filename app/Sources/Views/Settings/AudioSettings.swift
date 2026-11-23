@@ -6,7 +6,7 @@ import Security
 
 // MARK: - Permissions
 
-/// What macOS currently allows Oatmeal, re-read every second while Settings is open so a switch
+/// What macOS currently allows Bynd, re-read every second while Settings is open so a switch
 /// flipped in System Settings shows up straight away.
 @MainActor
 final class PermissionsMonitor: ObservableObject {
@@ -82,7 +82,7 @@ extension PermissionState {
         switch s {
         case .fullAccess: self = .allowed
         case .notDetermined: self = .notAsked
-        default: self = .denied   // denied, restricted and write-only all mean Oatmeal can't read events
+        default: self = .denied   // denied, restricted and write-only all mean Bynd can't read events
         }
     }
 }
@@ -138,7 +138,7 @@ struct PermissionsCard: View {
             if PermissionsMonitor.isAdHocSigned {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(DF.okayInk)
-                    Text("This is an unsigned development build. macOS forgets Oatmeal\u{2019}s permissions every time it\u{2019}s rebuilt, so you may need to allow them again.")
+                    Text("This is an unsigned development build. macOS forgets Bynd\u{2019}s permissions every time it\u{2019}s rebuilt, so you may need to allow them again.")
                         .font(DF.font(12)).foregroundStyle(DF.muted).fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.vertical, 12)
@@ -152,7 +152,7 @@ struct PermissionsCard: View {
 
 // MARK: - Audio tab
 
-/// Settings › Audio: which mic Oatmeal listens with, a live level to check it hears you, and how call audio is captured.
+/// Settings › Audio: which mic Bynd listens with, a live level to check it hears you, and how call audio is captured.
 struct AudioSettingsTab: View {
     @ObservedObject private var inputs = AudioInputs.shared
 
@@ -170,7 +170,7 @@ struct AudioSettingsTab: View {
             Text("Microphone").font(DF.font(17, .semibold)).foregroundStyle(DF.ink).padding(.top, 4)
             VStack(spacing: 0) {
                 SettingsRow(icon: "mic", title: "Input", sub: inputs.selectedMissing
-                            ? "Your chosen mic isn\u{2019}t connected, so Oatmeal is using \(inputs.defaultName)"
+                            ? "Your chosen mic isn\u{2019}t connected, so Bynd is using \(inputs.defaultName)"
                             : "Used for dictation and your side of meetings") {
                     DFSelect(options: micOptions, selection: $inputs.selectedUID, width: 260)
                 }
@@ -205,7 +205,7 @@ struct AudioSettingsTab: View {
         switch perms.mic {
         case .authorized: return "Say something: the bars should move. Listening with \(inputs.activeName)"
         case .notDetermined: return "Allow the microphone to test it"
-        default: return "Microphone access is off, so Oatmeal can\u{2019}t hear you"
+        default: return "Microphone access is off, so Bynd can\u{2019}t hear you"
         }
     }
 }

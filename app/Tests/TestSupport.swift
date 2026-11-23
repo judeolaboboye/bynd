@@ -1,10 +1,10 @@
 import Foundation
 import SwiftData
-@testable import Oatmeal
+@testable import Bynd
 
-/// A local date built on Oatmeal's calendar (weeks start Monday).
+/// A local date built on Bynd's calendar (weeks start Monday).
 func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 0, _ min: Int = 0) -> Date {
-    Calendar.oatmeal.date(from: DateComponents(year: y, month: m, day: d, hour: h, minute: min))!
+    Calendar.bynd.date(from: DateComponents(year: y, month: m, day: d, hour: h, minute: min))!
 }
 
 /// A fresh in-memory store for one test.

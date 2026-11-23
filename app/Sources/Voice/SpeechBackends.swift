@@ -30,7 +30,7 @@ enum SpeechBackendError: Error, LocalizedError {
         switch self {
         case .notLoaded: "The speech model isn\u{2019}t loaded yet."
         case .unsupported(let why): why
-        case .permissionDenied: "Speech recognition isn\u{2019}t allowed for Oatmeal."
+        case .permissionDenied: "Speech recognition isn\u{2019}t allowed for Bynd."
         }
     }
 }
@@ -45,10 +45,10 @@ enum SpeechDisk {
         return total
     }
 
-    /// ~/Library/Application Support/Oatmeal/Models
-    static var oatmealModels: URL {
+    /// ~/Library/Application Support/Bynd/Models
+    static var byndModels: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Oatmeal/Models", isDirectory: true)
+            .appendingPathComponent("Bynd/Models", isDirectory: true)
     }
 
     /// Pad clips under 1 s with silence (Parakeet and Qwen3 reject or misread them).
@@ -164,7 +164,7 @@ actor WhisperBackend: SpeechBackend {
 
     init(variant: WhisperVariant) { self.variant = variant }
 
-    static var downloadBase: URL { SpeechDisk.oatmealModels.appendingPathComponent("WhisperKit", isDirectory: true) }
+    static var downloadBase: URL { SpeechDisk.byndModels.appendingPathComponent("WhisperKit", isDirectory: true) }
     static let repo = "argmaxinc/whisperkit-coreml"
 
     static func folder(_ v: WhisperVariant) -> URL {
@@ -404,4 +404,4 @@ final class LockedFlag: @unchecked Sendable {
     }
 }
 
-// MARK: - Oatmeal Cloud
+// MARK: - Bynd Cloud

@@ -2,7 +2,7 @@ import Foundation
 import Network
 
 /// A local MCP server ("Streamable HTTP" transport, JSON responses only) so
-/// agents on this Mac can read and plan the user's day in Oatmeal.
+/// agents on this Mac can read and plan the user's day in Bynd.
 ///
 /// Listens on 127.0.0.1:29985 only. POST /mcp takes JSON-RPC (single message or
 /// batch) and answers with `application/json`. Requests carrying a non-local
@@ -20,7 +20,7 @@ final class MCPServer: ObservableObject {
     var url: String { "http://127.0.0.1:\(Self.port)/mcp" }
 
     private var listener: NWListener?
-    private let queue = DispatchQueue(label: "com.oatmeal.mcp")
+    private let queue = DispatchQueue(label: "com.bynd.mcp")
     private let tools = MCPTools()
 
     private init() {}
@@ -84,7 +84,7 @@ final class MCPServer: ObservableObject {
             return HTTPResponse(status: 200, headers: [:], body: Data())   // sessions are stateless here
         default:
             return HTTPResponse(status: 405, headers: ["Allow": "POST, DELETE", "Content-Type": "text/plain"],
-                                body: Data("Method not allowed. Oatmeal doesn't offer an SSE stream; POST JSON-RPC to /mcp.".utf8))
+                                body: Data("Method not allowed. Bynd doesn't offer an SSE stream; POST JSON-RPC to /mcp.".utf8))
         }
 
         let parsed: Any
@@ -127,7 +127,7 @@ final class MCPServer: ObservableObject {
             return Self.result(id: id, [
                 "protocolVersion": requested.flatMap { supported.contains($0) ? $0 : nil } ?? Self.protocolVersion,
                 "capabilities": ["tools": ["listChanged": false]],
-                "serverInfo": ["name": "oatmeal", "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"],
+                "serverInfo": ["name": "bynd", "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"],
                 "instructions": Self.instructions,
             ])
         case "ping":
@@ -166,11 +166,11 @@ final class MCPServer: ObservableObject {
     }
 
     static let instructions = """
-    Oatmeal is the user's meeting notepad and dictation app for Mac. It holds:
-    - Meetings: notes Oatmeal recorded on this Mac (mic + call audio, no bot), with title, attendees, summary, \
+    Bynd is the user's meeting notepad and dictation app for Mac. It holds:
+    - Meetings: notes Bynd recorded on this Mac (mic + call audio, no bot), with title, attendees, summary, \
     action items, Granola-style notes, the user's own typed notes and a timestamped transcript (You = the user, \
     Them = the call). Meetings can be filed in folders.
-    - Dictations: text the user spoke with Oatmeal Flow (hold right Option) and dropped into other apps.
+    - Dictations: text the user spoke with Bynd Flow (tap or hold right Option) and dropped into other apps. Entries with destination "journal" are journal recordings (double-tap right Option), kept in Bynd and not typed anywhere.
     - Captures: screenshots and screen recordings the user took to show you (fn Space, fn ⌘). When they say \
     "look at this", "my screenshot" or "this recording", `get_capture` shows you the latest.
     Tips: `list_meetings` with a `query` finds the call where something came up; `get_meeting` reads it in full. \

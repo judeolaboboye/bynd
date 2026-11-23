@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-// Oatmeal's own controls. Nothing here uses AppKit's buttons, switches, pickers, menus or alerts:
+// Bynd's own controls. Nothing here uses AppKit's buttons, switches, pickers, menus or alerts:
 // menus and dialogs draw in `PopupLayer`, which sits over the whole window.
 
 // MARK: - Buttons
@@ -236,7 +236,7 @@ struct DFSegmented<T: Hashable>: View {
 
 // MARK: - Dropdown
 
-/// A select box that opens Oatmeal's own menu.
+/// A select box that opens Bynd's own menu.
 struct DFSelect<T: Hashable>: View {
     let options: [(T, String)]
     @Binding var selection: T
@@ -322,7 +322,7 @@ struct DFTextField: View {
 
 // MARK: - Menus and dialogs
 
-/// One row of an Oatmeal menu.
+/// One row of an Bynd menu.
 struct DFMenuItem {
     enum Kind { case action, submenu, header, divider }
     var kind: Kind
@@ -362,7 +362,7 @@ struct DFDialog {
 final class Popups: ObservableObject {
     static let shared = Popups()
     /// The window-wide coordinate space anchors are measured in.
-    static let space = "oatmeal-root"
+    static let space = "bynd-root"
 
     struct Menu {
         var items: [DFMenuItem]
@@ -427,7 +427,7 @@ extension View {
         onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Popups.space)) } action: { frame.wrappedValue = $0 }
     }
 
-    /// Right-click (or control-click) opens an Oatmeal menu at the pointer.
+    /// Right-click (or control-click) opens an Bynd menu at the pointer.
     func dfContextMenu(_ items: @escaping () -> [DFMenuItem]) -> some View {
         overlay(RightClickCatcher { point in
             let list = items()

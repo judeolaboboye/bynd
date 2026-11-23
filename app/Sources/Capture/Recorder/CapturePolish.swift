@@ -12,7 +12,7 @@ import LurkerEngine
 enum CapturePolish {
     static var projects: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Oatmeal/Recordings", isDirectory: true)
+            .appendingPathComponent("Bynd/Recordings", isDirectory: true)
     }
 
     struct Camera {
@@ -89,6 +89,12 @@ enum CapturePolish {
                 $0.transcript = text.isEmpty ? nil : transcript
                 $0.title = title
                 $0.status = nil; $0.progress = nil
+            }
+            // Screen, camera and audio as separate files next to it, for b-roll.
+            RecordingLibrary.saveParts(takeDirectory: dir, camera: camera?.url, raw: raw)
+            RecordingLibrary.shared.refresh()
+            if RecordingLibrary.shared.autoUpload, TaskRecording.shared.isTaskRecording(raw) {
+                RecordingLibrary.shared.upload("capture-\(stamp)")
             }
             DFLog.log("recorder", "finished \(raw.lastPathComponent)")
         } catch {

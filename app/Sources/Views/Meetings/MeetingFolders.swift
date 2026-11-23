@@ -226,7 +226,7 @@ struct MeetingFolderChip: View {
     }
 }
 
-/// Oatmeal's folder icon: a honey folder with a darker tab.
+/// Bynd's folder icon: a honey folder with a darker tab.
 struct FolderGlyph: View {
     var size: CGFloat = 16
     var open = false

@@ -10,8 +10,22 @@ written by the AI you already pay for.
   the whole screen, your camera and mic. When you stop you get the raw video and a polished one, with
   zooms on your clicks and typing, a clean frame and your camera in the corner, plus a transcript. fn Space
   takes a screenshot. Both wait on a shelf to paste into your agent, and live in the Captures section.
-- **Oatmeal Flow** works in any app: hold right ⌥, talk, let go, and the words are typed where your
+- **Oatmeal Flow** works in any app: tap right ⌥, talk, tap again (or hold right ⌥ for a quick one and
+  let go), and the words are typed where your
   cursor is. It drops the ums, follows "scratch that", and handles spoken punctuation.
+- **Journal**: double-tap right ⌥, talk as long as you like, tap right ⌥ to finish. It's transcribed and
+  kept in the Journal section instead of being typed anywhere.
+- **Draw** (from [BetterVoice](https://github.com/TarunTomar122/better-voice), MIT): hold
+  left ⌥, talk, and circle anything with the pointer. Each circle screenshots the screen; on release the
+  words and the screenshots are pasted together. All of them are kept in the Draw section.
+- **Guide** (inspired by [Clicky](https://github.com/farzaa/clicky), MIT): ask how to do anything, by
+  voice (right ⌥ G) or text. It looks at your screen, answers out loud with the Mac's voice and points at
+  things. It thinks with Claude Code on your own plan; no API keys.
+- **Tasks**: work on something while Oatmeal records your screen and face (no call, nobody else), to pick
+  stills and clips for b-roll later. Start one from the Tasks section, or let your calendar do it: during
+  working hours (events containing a word you pick, "Work" by default) Oatmeal asks "Are you working?"
+  and on yes records until the event ends. Every task and its videos are listed in Tasks.
+- **Keys**: every shortcut on one page.
 
 ## How notes get written
 

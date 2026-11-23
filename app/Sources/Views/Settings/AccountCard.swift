@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Settings › General: the account this copy of Oatmeal is connected to, and sign-in.
-/// Hidden in the open-source build until a site connects it (`oatmeal://connect`).
+/// Settings › General: the account this copy of Bynd is connected to, and sign-in.
+/// Hidden in the open-source build until a site connects it (`bynd://connect`).
 struct AccountCard: View {
-    @ObservedObject private var account = OatmealAccount.shared
+    @ObservedObject private var account = ByndAccount.shared
 
     var body: some View {
         if let site = account.site {

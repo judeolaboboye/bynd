@@ -372,7 +372,7 @@ struct RecordingCard: View {
         .frame(height: 168)
         .clipped()
         .overlay(alignment: .bottom) { Rectangle().fill(Color.black.opacity(0.06)).frame(height: 1) }
-        // click to open it in Oatmeal; drag it anywhere; swipe right to put it away
+        // click to open it in Bynd; drag it anywhere; swipe right to put it away
         .overlay(DragArea(files: captures.files(capture, polished: polished), picture: capture.frames, onClick: edit,
                           onDropped: { withAnimation(.easeOut(duration: 0.2)) { captures.remove(capture) } },
                           onSwipe: { swipe = max(0, $0) }, onSwipeEnd: endSwipe))

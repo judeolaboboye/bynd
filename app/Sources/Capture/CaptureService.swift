@@ -26,10 +26,10 @@ struct Capture: Identifiable, Equatable {
 ///
 /// macOS's own capture drops a floating thumbnail that slides away after a few
 /// seconds, into a temp file that is gone by the time you want it. Here a
-/// capture lands in ~/Pictures/Oatmeal and stays on a shelf until you clear
+/// capture lands in ~/Pictures/Bynd and stays on a shelf until you clear
 /// it: click it and it is pasted into the app you were in (a file path for a
 /// terminal agent, the file for an app that takes files), drag it anywhere,
-/// or let the agent fetch it over Oatmeal's MCP server (`get_capture`).
+/// or let the agent fetch it over Bynd's MCP server (`get_capture`).
 ///
 /// fn + Space is a region screenshot, macOS's own selection; fn + ⌘ is a
 /// recording of a region you drag (RegionPicker), and fn + ⌘ again (or Stop on
@@ -49,7 +49,7 @@ final class CaptureService: ObservableObject {
 
     /// No spaces in the folder or the names, so a pasted path works as-is in a terminal.
     static var folder: URL {
-        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures/Oatmeal", isDirectory: true)
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures/Bynd", isDirectory: true)
     }
 
     private init() {}
@@ -105,7 +105,7 @@ final class CaptureService: ObservableObject {
         RecorderController.shared.toggle()
     }
 
-    /// The app in front, where a click on the shelf will paste (never Oatmeal itself).
+    /// The app in front, where a click on the shelf will paste (never Bynd itself).
     private func rememberTarget() {
         if let app = NSWorkspace.shared.frontmostApplication, app.bundleIdentifier != Bundle.main.bundleIdentifier { targetApp = app }
     }

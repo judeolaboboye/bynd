@@ -31,7 +31,7 @@ enum NoteWriterKind: String, CaseIterable, Identifiable, Sendable {
 
 /// Writes a meeting's notes once the meeting is saved, so nobody has to paste the "Create notes"
 /// prompt. Runs Claude Code, Codex or Gemini CLI headless on this Mac, signed in with the user's own
-/// plan, and lets it reach only Oatmeal's MCP tools for reading and updating meetings.
+/// plan, and lets it reach only Bynd's MCP tools for reading and updating meetings.
 @MainActor
 final class NoteWriters: ObservableObject {
     static let shared = NoteWriters()
@@ -74,7 +74,7 @@ final class NoteWriters: ObservableObject {
     /// What the writer is asked to do: the same prompt the Create notes button copies.
     static func prompt(for note: MeetingNote) -> String {
         """
-        Use the Oatmeal MCP to create the notes for my meeting "\(note.title)" (\(note.startedAt.formatted(date: .abbreviated, time: .shortened)), id \(note.id.uuidString)).
+        Use the Bynd MCP to create the notes for my meeting "\(note.title)" (\(note.startedAt.formatted(date: .abbreviated, time: .shortened)), id \(note.id.uuidString)).
 
         1. Call get_meeting with that id. Read the whole transcript and my own notes.
         2. Fix the transcript: correct mis-heard words, names, product names and jargon, and wrong speaker labels (You is me, Them is the call). Use my notes and the rest of the conversation for context. Don't add anything that wasn't said. Save the fixes with update_meeting transcript_edits, using the #numbers from get_meeting.
@@ -98,7 +98,7 @@ final class NoteWriters: ObservableObject {
     private var queue: [(id: UUID, prompt: String)] = []
     private var busy = false
 
-    /// Queues the active writer on this meeting. Its notes appear in Oatmeal as soon as it saves them over MCP.
+    /// Queues the active writer on this meeting. Its notes appear in Bynd as soon as it saves them over MCP.
     func run(_ note: MeetingNote) {
         let id = note.id
         guard !running.contains(id) else { return }
@@ -106,7 +106,7 @@ final class NoteWriters: ObservableObject {
             errors[id] = "Install Claude Code, Codex or Gemini CLI to write notes on your own plan."
             return
         }
-        guard MCPServer.shared.isRunning else { errors[id] = "Oatmeal\u{2019}s MCP server is off (Settings \u{203A} MCP)."; return }
+        guard MCPServer.shared.isRunning else { errors[id] = "Bynd\u{2019}s MCP server is off (Settings \u{203A} MCP)."; return }
         errors[id] = nil
         running.insert(id)
         queue.append((id, Self.prompt(for: note)))
@@ -149,34 +149,34 @@ final class NoteWriters: ObservableObject {
         return note?.notesMarkdown.isEmpty ?? false
     }
 
-    /// The command line for each CLI, with only Oatmeal's two meeting tools reachable.
+    /// The command line for each CLI, with only Bynd's two meeting tools reachable.
     nonisolated static func job(_ kind: NoteWriterKind, prompt: String, url: String) -> (args: [String], cwd: URL) {
         let tmp = FileManager.default.temporaryDirectory
         switch kind {
         case .claude:
-            let mcp = #"{"mcpServers":{"oatmeal":{"type":"http","url":"\#(url)"}}}"#
+            let mcp = #"{"mcpServers":{"bynd":{"type":"http","url":"\#(url)"}}}"#
             return (["-p", prompt,
                      "--mcp-config", mcp, "--strict-mcp-config",
-                     "--allowedTools", "mcp__oatmeal__get_meeting mcp__oatmeal__update_meeting",
+                     "--allowedTools", "mcp__bynd__get_meeting mcp__bynd__update_meeting",
                      "--model", "sonnet", "--output-format", "json"], tmp)
         case .codex:
-            // Headless Codex refuses MCP calls that would need a prompt, so Oatmeal's tools are pre-approved.
+            // Headless Codex refuses MCP calls that would need a prompt, so Bynd's tools are pre-approved.
             // The sandbox stays read-only for everything else.
             return (["exec", "--skip-git-repo-check", "--ephemeral", "-s", "read-only",
-                     "-c", #"mcp_servers.oatmeal.url="\#(url)""#,
-                     "-c", #"mcp_servers.oatmeal.default_tools_approval_mode="approve""#,
+                     "-c", #"mcp_servers.bynd.url="\#(url)""#,
+                     "-c", #"mcp_servers.bynd.default_tools_approval_mode="approve""#,
                      "-c", #"approval_policy="never""#,
                      prompt], tmp)
         case .gemini:
             // Gemini reads MCP servers from .gemini/settings.json in its working folder. Shell and file
-            // tools are switched off, so auto-approving only lets it use Oatmeal's meeting tools.
-            let dir = tmp.appendingPathComponent("oatmeal-gemini", isDirectory: true)
+            // tools are switched off, so auto-approving only lets it use Bynd's meeting tools.
+            let dir = tmp.appendingPathComponent("bynd-gemini", isDirectory: true)
             let cfg = dir.appendingPathComponent(".gemini", isDirectory: true)
             try? FileManager.default.createDirectory(at: cfg, withIntermediateDirectories: true)
-            let settings = #"{"mcpServers":{"oatmeal":{"httpUrl":"\#(url)","trust":true}},"excludeTools":["run_shell_command","write_file","replace","web_fetch"]}"#
+            let settings = #"{"mcpServers":{"bynd":{"httpUrl":"\#(url)","trust":true}},"excludeTools":["run_shell_command","write_file","replace","web_fetch"]}"#
             try? settings.write(to: cfg.appendingPathComponent("settings.json"), atomically: true, encoding: .utf8)
             // Gemini drops yolo back to prompting in an untrusted folder; --skip-trust trusts only this temp folder, this run.
-            return (["-p", prompt, "--approval-mode", "yolo", "--skip-trust", "--allowed-mcp-server-names", "oatmeal", "-o", "json"], dir)
+            return (["-p", prompt, "--approval-mode", "yolo", "--skip-trust", "--allowed-mcp-server-names", "bynd", "-o", "json"], dir)
         }
     }
 
@@ -189,7 +189,7 @@ final class NoteWriters: ObservableObject {
         p.executableURL = URL(fileURLWithPath: path)
         p.arguments = args
         var env = ProcessInfo.processInfo.environment
-        // Opened from inside a Claude Code session, Oatmeal inherits that session's settings (its own
+        // Opened from inside a Claude Code session, Bynd inherits that session's settings (its own
         // proxy as ANTHROPIC_BASE_URL, session tokens). Passed on, they make the CLI sign in through the
         // wrong place ("Invalid API key"). Drop them so it uses the user's own login.
         for key in env.keys where key.hasPrefix("CLAUDE") || key == "ANTHROPIC_BASE_URL" || key == "ANTHROPIC_AUTH_TOKEN" {

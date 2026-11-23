@@ -7,12 +7,12 @@ struct MCPToolError: Error {
     init(_ message: String) { self.message = message }
 }
 
-/// The Oatmeal tools exposed over MCP. Everything runs on the main actor against
+/// The Bynd tools exposed over MCP. Everything runs on the main actor against
 /// `AppModel.shared.context`, and writes are saved straight away so the UI updates.
 @MainActor
 struct MCPTools {
     var context: ModelContext { AppModel.shared.context }
-    private var cal: Calendar { .oatmeal }
+    private var cal: Calendar { .bynd }
 
     static var names: [String] { definitions.compactMap { $0["name"] as? String } }
 
@@ -32,7 +32,7 @@ struct MCPTools {
         } catch let e as MCPToolError {
             return ["content": [["type": "text", "text": e.message]], "isError": true]
         } catch {
-            return ["content": [["type": "text", "text": "Oatmeal error: \(error.localizedDescription)"]], "isError": true]
+            return ["content": [["type": "text", "text": "Bynd error: \(error.localizedDescription)"]], "isError": true]
         }
     }
 
@@ -234,7 +234,7 @@ struct MCPTools {
     }
 
     static func dayString(_ d: Date) -> String {
-        let c = Calendar.oatmeal.dateComponents([.year, .month, .day], from: d)
+        let c = Calendar.bynd.dateComponents([.year, .month, .day], from: d)
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
     }
 
@@ -277,17 +277,17 @@ extension MCPTools {
         ],
         [
             "name": "get_capture",
-            "description": "A screenshot or screen recording the user took with Oatmeal (fn Space, fn ⌘), as a picture you can see: the latest one, or the one with `id`. A recording comes as its frames on one picture, labelled with their times, plus the video's path.",
+            "description": "A screenshot or screen recording the user took with Bynd (fn Space, fn ⌘), as a picture you can see: the latest one, or the one with `id`. A recording comes as its frames on one picture, labelled with their times, plus the video's path.",
             "inputSchema": ["type": "object", "properties": ["id": ["type": "string", "description": "Capture id from list_captures (default: the latest)."]]],
         ],
         [
             "name": "list_captures",
-            "description": "The user's Oatmeal screenshots and screen recordings, newest first, with their paths.",
+            "description": "The user's Bynd screenshots and screen recordings, newest first, with their paths.",
             "inputSchema": ["type": "object", "properties": ["limit": ["type": "integer", "description": "Max results (default 10)."]]],
         ],
         [
             "name": "search_dictations",
-            "description": "Search what the user has dictated with Oatmeal Flow, newest first.",
+            "description": "Search what the user has dictated with Bynd Flow, newest first.",
             "inputSchema": ["type": "object", "properties": [
                 "query": ["type": "string", "description": "Text to look for (case-insensitive)."],
                 "limit": ["type": "integer", "description": "Max results (default 20)."],

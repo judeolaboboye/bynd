@@ -1,6 +1,6 @@
 import XCTest
 import AVFoundation
-@testable import Oatmeal
+@testable import Bynd
 
 final class SpeechModelTests: XCTestCase {
     private var saved: [String: Any?] = [:]
@@ -87,7 +87,7 @@ final class SpeechModelTests: XCTestCase {
     // MARK: Round trips (real models, say → 16 kHz)
 
     private func speak(_ text: String) throws -> [Float] {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("oatmeal-say-\(UUID().uuidString).wav")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("bynd-say-\(UUID().uuidString).wav")
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/say")
         p.arguments = ["-v", "Samantha", "-o", url.path, "--data-format=LEF32@16000", text]
@@ -127,18 +127,18 @@ final class SpeechModelTests: XCTestCase {
         XCTAssertTrue(out.contains("friday"), out)
     }
 
-    /// Opt in with TEST_RUNNER_OATMEAL_SPEECH_E2E=1 (downloads Whisper tiny).
+    /// Opt in with TEST_RUNNER_BYND_SPEECH_E2E=1 (downloads Whisper tiny).
     func testWhisperTinyRoundTrip() async throws {
-        guard ProcessInfo.processInfo.environment["OATMEAL_SPEECH_E2E"] == "1" else { throw XCTSkip("Set OATMEAL_SPEECH_E2E=1") }
+        guard ProcessInfo.processInfo.environment["BYND_SPEECH_E2E"] == "1" else { throw XCTSkip("Set BYND_SPEECH_E2E=1") }
         WhisperVariant.selected = .tiny
         let out = try await roundTrip(.whisper).lowercased()
         XCTAssertTrue(out.contains("friday"), out)
     }
 
-    /// Opt in with TEST_RUNNER_OATMEAL_SPEECH_E2E=1 (needs the speech recognition plist key or macOS 26).
+    /// Opt in with TEST_RUNNER_BYND_SPEECH_E2E=1 (needs the speech recognition plist key or macOS 26).
     func testAppleRoundTrip() async throws {
-        guard ProcessInfo.processInfo.environment["OATMEAL_SPEECH_E2E"] == "1", SpeechModel.apple.isSupported
-        else { throw XCTSkip("Set OATMEAL_SPEECH_E2E=1") }
+        guard ProcessInfo.processInfo.environment["BYND_SPEECH_E2E"] == "1", SpeechModel.apple.isSupported
+        else { throw XCTSkip("Set BYND_SPEECH_E2E=1") }
         let out = try await roundTrip(.apple).lowercased()
         XCTAssertTrue(out.contains("friday"), out)
     }

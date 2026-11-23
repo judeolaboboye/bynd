@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Settings › MCP: connect Claude, Cursor and other AI tools to your Oatmeal.
+/// Settings › MCP: connect Claude, Cursor and other AI tools to your Bynd.
 struct MCPSettingsTab: View {
     static let url = "http://127.0.0.1:29985/mcp"
     @State private var copied: String?
@@ -8,10 +8,10 @@ struct MCPSettingsTab: View {
     @ObservedObject private var claude = NoteWriters.shared
 
     private var clients: [(name: String, how: String, snippet: String)] {[
-        ("Claude Code", "Run in Terminal", "claude mcp add --transport http oatmeal \(Self.url)"),
-        ("Claude Desktop", "Settings › Developer › Edit Config, add to mcpServers", "\"oatmeal\": { \"command\": \"npx\", \"args\": [\"-y\", \"mcp-remote\", \"\(Self.url)\"] }"),
-        ("Cursor", "~/.cursor/mcp.json, add to mcpServers", "\"oatmeal\": { \"url\": \"\(Self.url)\" }"),
-        ("Codex", "~/.codex/config.toml", "[mcp_servers.oatmeal]\nurl = \"\(Self.url)\""),
+        ("Claude Code", "Run in Terminal", "claude mcp add --transport http bynd \(Self.url)"),
+        ("Claude Desktop", "Settings › Developer › Edit Config, add to mcpServers", "\"bynd\": { \"command\": \"npx\", \"args\": [\"-y\", \"mcp-remote\", \"\(Self.url)\"] }"),
+        ("Cursor", "~/.cursor/mcp.json, add to mcpServers", "\"bynd\": { \"url\": \"\(Self.url)\" }"),
+        ("Codex", "~/.codex/config.toml", "[mcp_servers.bynd]\nurl = \"\(Self.url)\""),
     ]}
 
     var body: some View {
@@ -20,8 +20,8 @@ struct MCPSettingsTab: View {
                 Image(systemName: "point.3.connected.trianglepath.dotted").font(.system(size: 16))
                     .frame(width: 36, height: 36).background(DF.wash, in: RoundedRectangle(cornerRadius: 9))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Oatmeal MCP server").font(DF.font(15, .bold))
-                    Text("Lets your AI assistant read your day, add and finish tasks, check goals and search meetings. Runs on this Mac only, while Oatmeal is open.")
+                    Text("Bynd MCP server").font(DF.font(15, .bold))
+                    Text("Lets your AI assistant read your day, add and finish tasks, check goals and search meetings. Runs on this Mac only, while Bynd is open.")
                         .font(DF.font(13)).foregroundStyle(DF.muted).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()

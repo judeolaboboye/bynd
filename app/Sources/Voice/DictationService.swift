@@ -180,7 +180,7 @@ final class DictationService: ObservableObject {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .denied, .restricted:
             DFLog.log("mic", "start refused: microphone access denied")
-            micProblem = "Oatmeal can\u{2019}t use the mic. Allow it in Settings \u{203A} Audio."
+            micProblem = "Bynd can\u{2019}t use the mic. Allow it in Settings \u{203A} Audio."
             return
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .audio) { granted in

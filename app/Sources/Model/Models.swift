@@ -15,7 +15,7 @@ final class MeetingNote {
     /// What you typed yourself during the meeting.
     var myNotes: String = ""
     /// Granola-style notes as light markdown: `### Topic` headings with `- ` bullets.
-    /// Written after recording by Claude Code, Codex or Gemini CLI on this Mac, or by Oatmeal AI, or by an AI assistant over MCP.
+    /// Written after recording by Claude Code, Codex or Gemini CLI on this Mac, or by Bynd AI, or by an AI assistant over MCP.
     var notesMarkdown: String = ""
     /// The folder it's filed in (`MeetingFolder.id`), nil when unfiled.
     var folderID: UUID?
@@ -67,7 +67,7 @@ final class DictationEntry {
 
 extension Calendar {
     /// Gregorian, weeks starting Monday, in the user's time zone.
-    static var oatmeal: Calendar {
+    static var bynd: Calendar {
         var c = Calendar(identifier: .gregorian)
         c.firstWeekday = 2
         c.timeZone = .current

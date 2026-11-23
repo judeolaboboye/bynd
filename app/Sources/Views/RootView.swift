@@ -13,8 +13,13 @@ struct RootView: View {
                 Group {
                     switch model.section {
                     case .meetings: MeetingsView()
+                    case .tasks: TasksView()
                     case .dictation: DictationView()
+                    case .journal: JournalView()
                     case .captures: CapturesView()
+                    case .screenshots: CircleScreenshotsView()
+                    case .guide: GuideView()
+                    case .keys: KeysView()
                     case .settings: SettingsView()
                     }
                 }
@@ -49,7 +54,7 @@ private struct Sidebar: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 BrandMark(size: 22)
-                if !compact { Text("Oatmeal").font(DF.font(16, .semibold)).tracking(-0.2) }
+                if !compact { Text("Bynd").font(DF.font(16, .semibold)).tracking(-0.2) }
             }
             .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
             .padding(.horizontal, compact ? 0 : 8)
@@ -62,12 +67,16 @@ private struct Sidebar: View {
                 SidebarRow(icon: "doc.text", title: "Meetings", count: notes.count, compact: compact,
                            selected: model.section == .meetings && (model.place == .folder(nil) || model.place == .recent),
                            drop: { MeetingFolders.drop($0, into: nil, ctx: model.context) }) { model.go(.folder(nil)) }
+                row(.tasks)
                 SidebarRow(icon: "waveform", title: "Flow", compact: compact, selected: model.section == .dictation) {
                     withAnimation(.snappy(duration: 0.22)) { model.section = .dictation }
                 }
+                row(.journal)
                 SidebarRow(icon: "viewfinder", title: "Captures", compact: compact, selected: model.section == .captures) {
                     withAnimation(.snappy(duration: 0.22)) { model.section = .captures; model.selectedCaptureID = nil }
                 }
+                row(.screenshots)
+                row(.guide)
             }
 
             if !compact {
@@ -75,6 +84,7 @@ private struct Sidebar: View {
             }
 
             Spacer(minLength: 12)
+            row(.keys).padding(.bottom, 2)
             HStack(spacing: 4) {
                 SidebarRow(icon: "gearshape", title: "Settings", compact: compact, selected: model.section == .settings) {
                     withAnimation(.snappy(duration: 0.22)) { model.section = .settings }
@@ -87,6 +97,14 @@ private struct Sidebar: View {
         .padding(.horizontal, compact ? 10 : 10)
         .frame(width: compact ? 64 : 232)
         .background(DF.canvas)
+    }
+
+    /// A plain sidebar row for one of the newer sections (Tasks, Journal, Screenshots, Guide, Keys).
+    private func row(_ s: Section) -> some View {
+        SidebarRow(icon: s.symbol, title: s.title, compact: compact, selected: model.section == s) {
+            withAnimation(.snappy(duration: 0.22)) { model.section = s }
+        }
+        .help("\(s.title) (\u{2318}\(String(s.key.character)))")
     }
 }
 
@@ -382,10 +400,10 @@ struct TopBar: View {
                 }
             }
             Spacer()
-            if model.section == .meetings {
+            if model.section == .meetings || model.section == .tasks {
                 Button { model.setSidePanel(!model.sidePanelOpen) } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.dfIcon(active: model.sidePanelOpen))
-                    .help(model.sidePanelOpen ? "Hide today\u{2019}s meetings" : "Show today\u{2019}s meetings")
+                    .help(model.sidePanelOpen ? "Hide today\u{2019}s calendar" : "Show today\u{2019}s calendar")
             }
         }
         .padding(.leading, model.sidebarCollapsed ? 24 : 12).padding(.trailing, 12).frame(height: 44)

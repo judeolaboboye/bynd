@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import Oatmeal
+@testable import Bynd
 
 /// Finder-style folders: nesting, moving, and what deleting a folder does to what it held.
 @MainActor

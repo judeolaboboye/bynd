@@ -41,7 +41,7 @@ final class MeetingReminders: NSObject, UNUserNotificationCenterDelegate {
             let content = UNMutableNotificationContent()
             content.title = e.title
             let who = e.attendees.prefix(3).joined(separator: ", ")
-            content.body = "Starts \(e.start.formatted(date: .omitted, time: .shortened))" + (who.isEmpty ? "" : " · \(who)") + ". Take notes with Oatmeal?"
+            content.body = "Starts \(e.start.formatted(date: .omitted, time: .shortened))" + (who.isEmpty ? "" : " · \(who)") + ". Take notes with Bynd?"
             content.categoryIdentifier = Self.category
             content.userInfo = ["title": e.title, "eventID": e.id]
             content.sound = .default

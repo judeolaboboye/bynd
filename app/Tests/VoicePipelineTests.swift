@@ -1,12 +1,12 @@
 import XCTest
 import AVFoundation
-@testable import Oatmeal
+@testable import Bynd
 
 /// End to end without a microphone: macOS `say` speaks a sentence into a file,
 /// Parakeet (on this Mac) transcribes it, and the clean-up runs on the result.
 final class VoicePipelineTests: XCTestCase {
     private func speak(_ text: String) throws -> [Float] {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("oatmeal-say-\(UUID().uuidString).wav")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("bynd-say-\(UUID().uuidString).wav")
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/say")
         p.arguments = ["-v", "Samantha", "-o", url.path, "--data-format=LEF32@16000", text]

@@ -211,7 +211,7 @@ private struct CaptureDetail: View {
     }
 }
 
-/// A video with Oatmeal's own controls: play/pause, a scrubber and the time (no system player UI).
+/// A video with Bynd's own controls: play/pause, a scrubber and the time (no system player UI).
 private struct VideoBox: View {
     let url: URL
     @State private var player: AVPlayer?

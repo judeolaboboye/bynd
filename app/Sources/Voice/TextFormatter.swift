@@ -33,7 +33,7 @@ final class VoiceSettings: ObservableObject {
     static let starterWords: [DictionaryWord] = [
         ("supabase", "Supabase"), ("cloudflare", "Cloudflare"), ("vercel", "Vercel"), ("swift ui", "SwiftUI"),
         ("swiftui", "SwiftUI"), ("github", "GitHub"), ("open ai", "OpenAI"), ("javascript", "JavaScript"),
-        ("typescript", "TypeScript"), ("oat meal", "Oatmeal"), ("purist", "Purist"),
+        ("typescript", "TypeScript"), ("oat meal", "Bynd"), ("purist", "Purist"),
         ("mac os", "macOS"), ("ios", "iOS"), ("figma", "Figma"), ("notion", "Notion"),
     ].map { DictionaryWord(heard: $0.0, written: $0.1) }
 

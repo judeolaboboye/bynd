@@ -1,5 +1,5 @@
 import XCTest
-@testable import Oatmeal
+@testable import Bynd
 
 /// Drives the right-⌥ state machine with fake presses (no keyboard needed).
 @MainActor

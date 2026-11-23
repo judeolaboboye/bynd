@@ -86,10 +86,41 @@ final class CalendarStore: ObservableObject {
     }
 
     /// The event happening right now (or starting within 2 minutes), for the pill's
-    /// "meeting started" prompt.
+    /// "meeting started" prompt. When events overlap, the one that started most recently wins, so a
+    /// long all-day-ish block doesn't hide the others; events you said "not this one" to are left out.
     func currentEvent(now: Date = Date()) -> CalEvent? {
-        events(from: now.addingTimeInterval(-3600), to: now.addingTimeInterval(120))
-            .first { !$0.isAllDay && $0.start <= now.addingTimeInterval(120) && $0.end > now }
+        events(from: now.addingTimeInterval(-86_400), to: now.addingTimeInterval(120))
+            .filter { !$0.isAllDay && $0.start <= now.addingTimeInterval(120) && $0.end > now && !isSkipped($0) }
+            .max { $0.start < $1.start }
+    }
+
+    // MARK: "Not this one"
+
+    /// Events you skipped (meetings and tasks share this), keyed by event + start, kept for today only.
+    @Published private(set) var skipped: Set<String> = CalendarStore.loadSkipped()
+
+    static func skipKey(_ e: CalEvent) -> String { e.id + "@" + String(Int(e.start.timeIntervalSince1970)) }
+    func isSkipped(_ e: CalEvent) -> Bool { skipped.contains(Self.skipKey(e)) }
+
+    /// Say "not this one": the next event on the timeline takes its place.
+    func skip(_ e: CalEvent) {
+        skipped.insert(Self.skipKey(e))
+        UserDefaults.standard.set(Array(skipped), forKey: "skippedEvents")
+        UserDefaults.standard.set(Calendar.current.startOfDay(for: Date()).timeIntervalSince1970, forKey: "skippedDay")
+        changeToken += 1
+    }
+
+    func unskip(_ e: CalEvent) {
+        skipped.remove(Self.skipKey(e))
+        UserDefaults.standard.set(Array(skipped), forKey: "skippedEvents")
+        changeToken += 1
+    }
+
+    private static func loadSkipped() -> Set<String> {
+        let d = UserDefaults.standard
+        let today = Calendar.current.startOfDay(for: Date()).timeIntervalSince1970
+        guard d.double(forKey: "skippedDay") == today else { return [] }   // a new day starts clean
+        return Set(d.stringArray(forKey: "skippedEvents") ?? [])
     }
 
     // MARK: Helpers

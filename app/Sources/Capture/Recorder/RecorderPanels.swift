@@ -4,7 +4,7 @@ import SwiftUI
 
 /// The recorder's floating pieces, from the Purist frames "Capture · 1 Start" and "Capture · 2 Recording":
 /// the start bar, the camera bubble and the recording controls. Non-activating panels over every app and space,
-/// left out of the recording itself (Lurker excludes Oatmeal's own windows).
+/// left out of the recording itself (Lurker excludes Bynd's own windows).
 @MainActor
 final class RecorderPanels {
     static let shared = RecorderPanels()

@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 /// Notion-style page pieces shared by Flow, Meetings, a meeting and Settings (the "Flow", "Notes",
-/// "Meeting" and "Settings" frames in the Oatmeal Purist file): an icon above a big title, a line
+/// "Meeting" and "Settings" frames in the Bynd Purist file): an icon above a big title, a line
 /// of description, then content straight on the page with hairlines, no cards.
 extension DF {
     /// Reading column of Flow, a meeting and Settings.
@@ -22,7 +22,7 @@ extension View {
     }
 }
 
-/// A page's icon: one of Oatmeal's faces on a honey tile, or a symbol on a grey one.
+/// A page's icon: one of Bynd's faces on a honey tile, or a symbol on a grey one.
 struct PageIcon: View {
     enum Art { case face(String), symbol(String), meeting }
     let art: Art

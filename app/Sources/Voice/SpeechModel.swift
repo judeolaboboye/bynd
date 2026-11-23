@@ -66,7 +66,7 @@ enum SpeechModel: String, CaseIterable, Identifiable, Sendable {
     var onDevice: Bool { true }
     var needsPro: Bool { false }
 
-    /// Rough download size before the model is on disk. 0 when nothing is downloaded by Oatmeal.
+    /// Rough download size before the model is on disk. 0 when nothing is downloaded by Bynd.
     var approxBytes: Int64 {
         switch self {
         case .parakeetV3: 470_000_000

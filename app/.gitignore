@@ -1,6 +1,6 @@
 build/
 DerivedData/
-Oatmeal.xcodeproj/
+Bynd.xcodeproj/
 .DS_Store
 Config/Signing.local.xcconfig
 Config/Site.local.xcconfig

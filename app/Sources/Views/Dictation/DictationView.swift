@@ -10,23 +10,26 @@ struct DictationView: View {
 
     enum FlowTab: Hashable { case history, dictionary, snippets }
 
+    /// Journal recordings have their own section.
+    private var flowEntries: [DictationEntry] { entries.filter { $0.destination != "journal" } }
+
     private var filtered: [DictationEntry] {
         let q = query.lowercased().trimmingCharacters(in: .whitespaces)
-        return q.isEmpty ? entries : entries.filter { $0.text.lowercased().contains(q) || $0.appName.lowercased().contains(q) }
+        return q.isEmpty ? flowEntries : flowEntries.filter { $0.text.lowercased().contains(q) || $0.appName.lowercased().contains(q) }
     }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 NotionHeader(icon: .face("face-h"), title: "Flow",
-                             description: "Hold right \u{2325} and talk. The words land wherever your cursor is.") {
+                             description: "Tap right \u{2325} to start talking and tap again to finish, or hold it for a quick one. The words land wherever your cursor is.") {
                     EmptyView()
                 } below: {
                     ModelChip(state: dictation.modelState).padding(.top, 12)
                 }
 
-                if !entries.isEmpty {
-                    FlowStats(entries: entries).padding(.top, 28).padding(.bottom, 22)
+                if !flowEntries.isEmpty {
+                    FlowStats(entries: flowEntries).padding(.top, 28).padding(.bottom, 22)
                     Hairline()
                 } else {
                     Hairline().padding(.top, 24)
@@ -36,7 +39,7 @@ struct DictationView: View {
                     ViewTabs(items: [(FlowTab.history, "History", "clock"), (.dictionary, "Dictionary", "character.book.closed"), (.snippets, "Snippets", "text.badge.plus")],
                              selection: $tab)
                     Spacer(minLength: 8)
-                    if tab == .history && !entries.isEmpty {
+                    if tab == .history && !flowEntries.isEmpty {
                         SearchField(text: $query, prompt: "Search what you\u{2019}ve said").frame(width: 240)
                     }
                 }
@@ -56,10 +59,10 @@ struct DictationView: View {
     }
 
     @ViewBuilder private var history: some View {
-        if entries.isEmpty {
+        if flowEntries.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Nothing dictated yet").font(DF.font(16, .semibold))
-                Text("Hold right \u{2325}, talk, let go. Double-tap right \u{2325} to keep listening hands-free.")
+                Text("Tap right \u{2325}, talk, tap again. Or hold right \u{2325} for a quick one and let go. Double-tap right \u{2325} for a journal recording.")
                     .font(DF.font(15)).foregroundStyle(DF.muted)
             }
             .padding(.top, 28)
@@ -87,7 +90,7 @@ struct DictationView: View {
 }
 
 /// "Today  4 dictations · 276 words"
-private struct DayHeader: View {
+struct DayHeader: View {
     let day: Date
     let entries: [DictationEntry]
     var body: some View {
@@ -127,7 +130,7 @@ private struct ModelChip: View {
 private struct FlowStats: View {
     let entries: [DictationEntry]
     var body: some View {
-        let weekStart = Calendar.oatmeal.dateInterval(of: .weekOfYear, for: Date())!.start
+        let weekStart = Calendar.bynd.dateInterval(of: .weekOfYear, for: Date())!.start
         let week = entries.filter { $0.createdAt >= weekStart }
         let words = week.reduce(0) { $0 + $1.wordCount }
         let secs = entries.filter { $0.seconds > 1 }.reduce(0.0) { $0 + $1.seconds }
@@ -151,7 +154,7 @@ private struct FlowStats: View {
     }
 }
 
-private struct EntryRow: View {
+struct EntryRow: View {
     let entry: DictationEntry
     @EnvironmentObject var model: AppModel
     @State private var hover = false
@@ -215,12 +218,12 @@ struct DictionaryList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Words Oatmeal hears wrong, and how they should be written.").font(DF.font(15)).foregroundStyle(DF.muted)
+            Text("Words Bynd hears wrong, and how they should be written.").font(DF.font(15)).foregroundStyle(DF.muted)
                 .padding(.bottom, 14)
             HStack(spacing: 8) {
                 PlainField(prompt: "Heard, e.g. oat meal", text: $heard)
                 Image(systemName: "arrow.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(DF.faint)
-                PlainField(prompt: "Written, e.g. Oatmeal", text: $written)
+                PlainField(prompt: "Written, e.g. Bynd", text: $written)
                 Button("Add") {
                     v.words.insert(DictionaryWord(heard: heard.lowercased(), written: written), at: 0)
                     heard = ""; written = ""

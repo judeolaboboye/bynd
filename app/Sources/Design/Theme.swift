@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// Colours and type from the Oatmeal designs in Purist ("Oatmeal" file, the "Capture" frames).
+/// Colours and type from the Bynd designs in Purist ("Bynd" file, the "Capture" frames).
 /// Notion's look: ink on white, warm greys for the sidebar and wells, honey only as a highlight,
 /// red for live states.
 enum DF {
@@ -98,7 +98,7 @@ extension View {
     func dfCard(selected: Bool = false) -> some View { modifier(CardStyle(selected: selected)) }
 }
 
-/// Oatmeal's face (drawn from Notion Avatar parts) on a soft honey tile, the way Notion shows a
+/// Bynd's face (drawn from Notion Avatar parts) on a soft honey tile, the way Notion shows a
 /// page icon.
 struct BrandMark: View {
     var size: CGFloat = 22

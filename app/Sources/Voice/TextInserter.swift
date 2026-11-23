@@ -144,6 +144,23 @@ enum TextInserter {
         return AXIsProcessTrustedWithOptions([key: prompt] as CFDictionary)
     }
 
+    /// Pastes images (circle screenshots) one after another into the focused field, after the text.
+    /// The clipboard keeps the last image afterwards.
+    static func pasteImages(_ urls: [URL], after delay: TimeInterval = 0.9) {
+        guard !urls.isEmpty else { return }
+        var t = delay
+        for url in urls {
+            DispatchQueue.main.asyncAfter(deadline: .now() + t) {
+                guard let image = NSImage(contentsOf: url) else { return }
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.writeObjects([image])
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { simulatePaste() }
+            }
+            t += 0.5
+        }
+    }
+
     private static func simulatePaste() {
         let source = CGEventSource(stateID: .hidSystemState)
         // Flags are set explicitly, so a physically-held ⌥ doesn't leak in.

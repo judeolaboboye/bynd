@@ -5,12 +5,12 @@ import AVFoundation
 import ApplicationServices
 
 @main
-struct OatmealApp: App {
+struct ByndApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var model = AppModel.shared
 
     var body: some Scene {
-        Window("Oatmeal", id: "main") {
+        Window("Bynd", id: "main") {
             RootView()
                 .preferredColorScheme(.light)
                 .environmentObject(model)
@@ -44,18 +44,26 @@ enum Place: Hashable {
 }
 
 enum Section: String, CaseIterable, Identifiable {
-    case meetings, dictation, captures, settings
+    case meetings, tasks, dictation, journal, captures, screenshots, guide, keys, settings
     var id: String { rawValue }
     /// The sections in the sidebar's main switch (Settings sits at the bottom).
-    static var main: [Section] { [.meetings, .dictation, .captures] }
+    static var main: [Section] { [.meetings, .tasks, .dictation, .journal, .captures, .screenshots, .guide, .keys] }
     var title: String {
-        switch self { case .meetings: "Notes"; case .dictation: "Flow"; case .captures: "Captures"; case .settings: "Settings" }
+        switch self {
+        case .meetings: "Notes"; case .tasks: "Tasks"; case .dictation: "Flow"; case .journal: "Journal"; case .captures: "Captures"
+        case .screenshots: "Draw"; case .guide: "Guide"; case .keys: "Keys"; case .settings: "Settings"
+        }
     }
     var symbol: String {
-        switch self { case .meetings: "note.text"; case .dictation: "waveform"; case .captures: "viewfinder"; case .settings: "gearshape" }
+        switch self {
+        case .meetings: "note.text"; case .tasks: "record.circle"; case .dictation: "waveform"; case .journal: "book.closed"; case .captures: "viewfinder"
+        case .screenshots: "pencil.and.scribble"; case .guide: "questionmark.bubble"; case .keys: "command"; case .settings: "gearshape"
+        }
     }
     var key: KeyEquivalent {
-        switch self { case .meetings: "1"; case .dictation: "2"; case .captures: "3"; case .settings: "," }
+        switch self {
+        case .meetings: "1"; case .tasks: "2"; case .dictation: "3"; case .journal: "4"; case .captures: "5"; case .screenshots: "6"; case .guide: "7"; case .keys: "8"; case .settings: ","
+        }
     }
 }
 
@@ -133,7 +141,7 @@ final class AppModel: ObservableObject {
             container = try ModelContainer(for: MeetingNote.self, MeetingFolder.self, DictationEntry.self,
                                            configurations: config)
         } catch {
-            fatalError("Couldn't open the Oatmeal store: \(error)")
+            fatalError("Couldn't open the Bynd store: \(error)")
         }
         clock = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -147,7 +155,7 @@ final class AppModel: ObservableObject {
     }
 
     /// Dev-only launch options for screenshots and checks, e.g.
-    /// `Oatmeal -section goals -sheet goal -pill recording`.
+    /// `Bynd -section goals -sheet goal -pill recording`.
     private func applyLaunchArguments() {
         let d = UserDefaults.standard
         if let s = d.string(forKey: "section"), let sec = Section(rawValue: s) { section = sec }
@@ -186,7 +194,7 @@ final class AppModel: ObservableObject {
             // Draw each window into a PNG from inside the app. This works even when the
             // screen is locked, where ordinary screenshots come back empty.
             DispatchQueue.main.asyncAfter(deadline: .now() + (d.double(forKey: "shotDelay") > 0 ? d.double(forKey: "shotDelay") : 3.0)) {
-                let dir = URL(fileURLWithPath: d.string(forKey: "shotDir") ?? "/tmp/oatmeal-shots")
+                let dir = URL(fileURLWithPath: d.string(forKey: "shotDir") ?? "/tmp/bynd-shots")
                 try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
                 let name = d.string(forKey: "shotName") ?? "shot"
                 var i = 0
@@ -213,7 +221,7 @@ final class AppModel: ObservableObject {
 
     /// The main window, if SwiftUI has one alive.
     var mainWindow: NSWindow? {
-        NSApp.windows.first { !($0 is NSPanel) && $0.frame.width > 600 && ($0.identifier?.rawValue.contains("main") == true || $0.title == "Oatmeal") }
+        NSApp.windows.first { !($0 is NSPanel) && $0.frame.width > 600 && ($0.identifier?.rawValue.contains("main") == true || $0.title == "Bynd") }
     }
 
     func open(_ s: Section) {
@@ -231,7 +239,7 @@ final class AppModel: ObservableObject {
             .frame(minWidth: 900, minHeight: 600)
             .modelContainer(container))
         let w = NSWindow(contentViewController: host)
-        w.title = "Oatmeal"
+        w.title = "Bynd"
         w.styleMask.insert([.fullSizeContentView, .titled, .closable, .miniaturizable, .resizable])
         w.titlebarAppearsTransparent = true
         w.titleVisibility = .hidden
@@ -254,7 +262,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Fades the window out, then hides Oatmeal so the app you were in comes back.
+    /// Fades the window out, then hides Bynd so the app you were in comes back.
     func hideWindow() {
         guard let w = mainWindow, w.isVisible else { NSApp.hide(nil); return }
         NSAnimationContext.runAnimationGroup({ ctx in
@@ -283,17 +291,17 @@ final class AppModel: ObservableObject {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 
-    /// tccutil: wipe Oatmeal's Accessibility / Microphone / Calendar / audio-capture
+    /// tccutil: wipe Bynd's Accessibility / Microphone / Calendar / audio-capture
     /// records (stale entries from older builds are the usual reason a switch is
     /// "on" but right ⌥ still does nothing), then relaunch so macOS asks again.
     func resetPermissions() {
-        Popups.shared.confirm("Reset Oatmeal\u{2019}s permissions?",
-                              "Oatmeal will be removed from Accessibility, Microphone and Calendars, then relaunch and ask again. Use this if right \u{2325} or dictation stopped working.",
+        Popups.shared.confirm("Reset Bynd\u{2019}s permissions?",
+                              "Bynd will be removed from Accessibility, Microphone and Calendars, then relaunch and ask again. Use this if right \u{2325} or dictation stopped working.",
                               confirm: "Reset and relaunch", destructive: true) { [weak self] in self?.resetPermissionsNow() }
     }
 
     private func resetPermissionsNow() {
-        let id = Bundle.main.bundleIdentifier ?? "com.oatmeal.app"
+        let id = Bundle.main.bundleIdentifier ?? "com.bynd.app"
         for service in ["Accessibility", "Microphone", "Calendar", "ListenEvent", "AudioCapture"] {
             let p = Process()
             p.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
@@ -319,17 +327,17 @@ final class AppModel: ObservableObject {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
 
-    /// oatmeal:// links: a site connecting the app, and sign-in coming back from the browser.
+    /// bynd:// links: a site connecting the app, and sign-in coming back from the browser.
     func application(_ application: NSApplication, open urls: [URL]) {
-        Task { @MainActor in for url in urls { OatmealAccount.shared.handle(url) } }
+        Task { @MainActor in for url in urls { ByndAccount.shared.handle(url) } }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setvbuf(stdout, nil, _IOLBF, 0)
-        // Oatmeal is designed light. Without this, a Mac in dark mode draws native
+        // Bynd is designed light. Without this, a Mac in dark mode draws native
         // controls (pickers, toggles, menus) with white text on our white cards.
         NSApp.appearance = NSAppearance(named: .aqua)
-        print("[Oatmeal] Accessibility trusted: \(AXIsProcessTrusted()) · mic: \(AVCaptureDevice.authorizationStatus(for: .audio).rawValue)")
+        print("[Bynd] Accessibility trusted: \(AXIsProcessTrusted()) · mic: \(AVCaptureDevice.authorizationStatus(for: .audio).rawValue)")
         Task { @MainActor in
             AppModel.shared.bootstrap()
             // Dev: `-rebuildMeetings YES` turns every recording without a meeting back into one.
@@ -345,9 +353,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             PillController.shared.start()
             CaptureService.shared.start()
             self.installStatusItem()
-            if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined { AppModel.shared.requestMic() }
+            // Tests run a copy with the same app ID: it must never ask for, or overwrite, Jude's permissions.
+            let underTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined, !underTests { AppModel.shared.requestMic() }
             // Right ⌥ and typing into other apps both need Accessibility: ask once at launch.
-            if !AXIsProcessTrusted(), !UserDefaults.standard.bool(forKey: "shots") {
+            if !AXIsProcessTrusted(), !UserDefaults.standard.bool(forKey: "shots"), !underTests {
                 let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
                 _ = AXIsProcessTrustedWithOptions(opts)
             }
@@ -384,18 +394,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let i = menu.addItem(withTitle: title, action: sel, keyEquivalent: key)
             i.keyEquivalentModifierMask = mods; i.target = self
         }
-        add("Open Oatmeal  (tap right ⌥)", #selector(openMain), "", [])
+        add("Open Bynd  (right ⌥ W)", #selector(openMain), "", [])
         add("Start or Stop Meeting Notes  (right ⌥ M)", #selector(toggleMeeting), "", [])
         add("Screenshot for Your Agent  (fn Space)", #selector(takeScreenshot), "", [])
         add("Start or Stop Recording  (fn ⌘)", #selector(toggleRecording), "", [])
         add("Show Captures Folder", #selector(showCaptures), "", [])
         menu.addItem(.separator())
-        let hint = NSMenuItem(title: "Hold right ⌥ to dictate · tap it to open Oatmeal", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: "Tap right ⌥ to dictate (hold for a quick one) · double-tap for Journal · hold left ⌥ and circle to Draw", action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
         menu.addItem(withTitle: "Show Pill", action: #selector(togglePill), keyEquivalent: "").target = self
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Oatmeal", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        menu.addItem(withTitle: "Quit Bynd", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.menu = menu
         statusItem = item
     }

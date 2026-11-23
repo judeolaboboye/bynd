@@ -19,8 +19,8 @@ final class CameraFeed: NSObject, ObservableObject {
     private let audioOut = AVCaptureAudioDataOutput()
     private var cameraInput: AVCaptureDeviceInput?
     private var micInput: AVCaptureDeviceInput?
-    private let queue = DispatchQueue(label: "oatmeal.camera")
-    private let levelQueue = DispatchQueue(label: "oatmeal.camera.level")
+    private let queue = DispatchQueue(label: "bynd.camera")
+    private let levelQueue = DispatchQueue(label: "bynd.camera.level")
     private var recordingDone: CheckedContinuation<URL?, Never>?
     /// Host-clock seconds when the camera file started (its time 0).
     private(set) var recordingStarted: Double?

@@ -48,7 +48,7 @@ final class MeetingAudioRecorder: NSObject, @unchecked Sendable {
 
     private var assetWriter: AVAssetWriter?
     private var audioInput: AVAssetWriterInput?
-    private let writeQueue = DispatchQueue(label: "com.oatmeal.meeting.write")
+    private let writeQueue = DispatchQueue(label: "com.bynd.meeting.write")
     private var samplesWritten: Int64 = 0
     private let targetSampleRate: Double = 16_000
 
@@ -249,7 +249,7 @@ final class MeetingAudioRecorder: NSObject, @unchecked Sendable {
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         try stream.addStreamOutput(self, type: .audio,
-                                   sampleHandlerQueue: DispatchQueue(label: "com.oatmeal.meeting.system"))
+                                   sampleHandlerQueue: DispatchQueue(label: "com.bynd.meeting.system"))
         try await stream.startCapture()
         systemStream = stream
         print("[Meeting] system audio running via ScreenCaptureKit @ 16kHz mono")

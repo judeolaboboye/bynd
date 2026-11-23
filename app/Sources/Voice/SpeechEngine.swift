@@ -61,7 +61,7 @@ actor SpeechEngine {
     nonisolated func modelSize(_ m: SpeechModel) -> Int64 { Self.modelSize(m) }
 
     /// Selected model's folder, for Settings › Models.
-    nonisolated static var modelDirectory: URL { directory(SpeechModel.selected) ?? SpeechDisk.oatmealModels }
+    nonisolated static var modelDirectory: URL { directory(SpeechModel.selected) ?? SpeechDisk.byndModels }
     nonisolated static var modelSizeOnDisk: Int64 { modelSize(SpeechModel.selected) }
 
     // MARK: Backends

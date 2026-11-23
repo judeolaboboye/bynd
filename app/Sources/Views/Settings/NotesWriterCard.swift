@@ -16,7 +16,7 @@ struct NotesWriterCard: View {
                 }
             }
             .dfCard()
-            Text("Oatmeal runs Claude Code, Codex or Gemini CLI on this Mac and gives it only two tools: read a meeting, save its notes.")
+            Text("Bynd runs Claude Code, Codex or Gemini CLI on this Mac and gives it only two tools: read a meeting, save its notes.")
                 .font(DF.font(12)).foregroundStyle(DF.faint)
         }
     }

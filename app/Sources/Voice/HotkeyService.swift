@@ -19,7 +19,7 @@ final class HotkeyService {
     var onTaskRelease: (() -> Void)?
     /// ⌥ M: start or stop meeting notes.
     var onMeeting: (() -> Void)?
-    /// ⌥ D: open Oatmeal.
+    /// ⌥ D: open Bynd.
     var onOpen: (() -> Void)?
 
     private var hotKeyRef: EventHotKeyRef?
@@ -99,14 +99,14 @@ final class HotkeyService {
             EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
             EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased)),
         ]
-        let status = InstallEventHandler(GetApplicationEventTarget(), oatmealHotkeyCallback,
+        let status = InstallEventHandler(GetApplicationEventTarget(), byndHotkeyCallback,
                                          eventTypes.count, &eventTypes, nil, &handlerRef)
         print("[HotkeyService] Carbon event handler installed: status=\(status)")
     }
 }
 
 // Top-level C function for Carbon callback
-private func oatmealHotkeyCallback(
+private func byndHotkeyCallback(
     _ nextHandler: EventHandlerCallRef?,
     _ event: EventRef?,
     _ userData: UnsafeMutableRawPointer?

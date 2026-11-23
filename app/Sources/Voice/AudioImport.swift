@@ -32,7 +32,7 @@ final class AudioImporter: ObservableObject {
 
     func dismissError() { job = nil }
 
-    /// Rebuilds a meeting for every recording in Oatmeal/Meetings that has none, oldest first. For when
+    /// Rebuilds a meeting for every recording in Bynd/Meetings that has none, oldest first. For when
     /// the database is lost but the audio isn't (Oct 31: icloudmailagent replaced the shared store).
     func rebuildFromRecordings() async {
         let fm = FileManager.default

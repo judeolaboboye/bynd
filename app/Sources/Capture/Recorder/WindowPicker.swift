@@ -42,7 +42,7 @@ final class WindowPicker {
 
     struct Window { let id: CGWindowID; let frame: CGRect; let app: String }
 
-    /// On-screen app windows front to back, frames in global top-left points, leaving out Oatmeal's own.
+    /// On-screen app windows front to back, frames in global top-left points, leaving out Bynd's own.
     static func windows() -> [Window] {
         let me = ProcessInfo.processInfo.processIdentifier
         let list = (CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]) ?? []

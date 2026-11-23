@@ -1,0 +1,6 @@
+backup/
+.dd/
+.dd-test/
+.dd-release/
+*.log
+.DS_Store

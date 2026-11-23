@@ -2,11 +2,16 @@ import AppKit
 import CoreGraphics
 import os
 
-/// Everything runs from the right Option key:
-///   tap            → swap between the pill and the Oatmeal window
-///   hold           → dictate into the app you're in (let go to type it)
+/// Everything runs from the right Option key (Jude's layout, 2026-11-22):
+///   tap            → start dictating hands-free; tap again to stop and type it
+///   hold           → short dictation into the app you're in (let go to type it)
+///   double tap     → a journal recording: transcribed, saved in Journal, not typed
 ///   hold, then T   → this dictation becomes a task instead
 ///   right ⌥ + M    → start or stop meeting notes
+///   right ⌥ + W    → swap between the pill and the Bynd window (what a tap used to do)
+///   right ⌥ + G    → ask Guide by voice; press again to send
+///   hold left ⌥    → dictate and circle things on screen to screenshot them (from BetterVoice);
+///                    left ⌥ with any other key is just the normal Option key
 ///
 /// It also hears fn for captures, clear of every voice key:
 ///   fn + Space     → a screenshot for your agent
@@ -27,8 +32,20 @@ final class RightOptionKey {
     var onHoldEnd: (() -> Void)?
     var onMakeTask: (() -> Void)?
     var onMeeting: (() -> Void)?
-    /// Double-tap right ⌥: hands-free, keeps listening until the next tap.
+    /// Double-tap right ⌥: a journal recording, keeps listening until the next tap.
     var onDoubleTap: (() -> Void)?
+    /// Right ⌥ + W: swap between the pill and the Bynd window.
+    var onSwapWindow: (() -> Void)?
+    /// Right ⌥ + G: ask Guide by voice (again to send).
+    var onGuide: (() -> Void)?
+    /// Hold left ⌥ alone: dictation with circle screenshots. Released: finish.
+    var onLeftHoldStart: (() -> Void)?
+    var onLeftHoldEnd: (() -> Void)?
+    private var leftDownAt: Date?
+    private var leftHolding = false
+    private var leftUsed = false
+    private var leftHoldWork: DispatchWorkItem?
+    nonisolated fileprivate static let leftOptionKeyCode: Int64 = 58
     /// Right ⌥ + V: paste the last dictation again.
     var onPasteLast: (() -> Void)?
     /// fn + Space: a screenshot. fn + ⌘: start or stop a recording.
@@ -45,7 +62,7 @@ final class RightOptionKey {
     private(set) var isInstalled = false
     private var warned = false
     nonisolated(unsafe) fileprivate static var machPort: CFMachPort?
-    /// Esc belongs to Oatmeal right now (listening, or the copy card is up), so the tap swallows it.
+    /// Esc belongs to Bynd right now (listening, or the copy card is up), so the tap swallows it.
     nonisolated static let escapeIsOurs = OSAllocatedUnfairLock(initialState: false)
     private var downAt: Date?
     private var holding = false
@@ -55,7 +72,7 @@ final class RightOptionKey {
     /// How long right ⌥ has to stay down before it counts as a hold.
     private let holdDelay: TimeInterval = 0.22
     nonisolated fileprivate static let rightOptionKeyCode: Int64 = 61
-    nonisolated fileprivate static let keyT: Int64 = 17, keyM: Int64 = 46, keyV: Int64 = 9
+    nonisolated fileprivate static let keyT: Int64 = 17, keyM: Int64 = 46, keyV: Int64 = 9, keyW: Int64 = 13, keyG: Int64 = 5
 
     /// Is the right ⌥ itself down? The device bits tell left (0x20) from right (0x40); a keyboard
     /// or remapper that sends neither falls back to "any ⌥".
@@ -83,7 +100,7 @@ final class RightOptionKey {
             CGEvent.tapEnable(tap: t, enable: true)
             CFRunLoopRun()
         }
-        thread.name = "Oatmeal right ⌥"
+        thread.name = "Bynd right ⌥"
         thread.qualityOfService = .userInteractive
         thread.start()
         isInstalled = true
@@ -133,6 +150,32 @@ final class RightOptionKey {
         DispatchQueue.main.asyncAfter(deadline: .now() + doubleTapWindow, execute: work)
     }
 
+    func leftOption(down: Bool) {
+        if down {
+            guard leftDownAt == nil, downAt == nil else { return }
+            leftDownAt = Date(); leftUsed = false; leftHolding = false
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, self.leftDownAt != nil, !self.leftUsed else { return }
+                self.leftHolding = true
+                self.onLeftHoldStart?()
+            }
+            leftHoldWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + holdDelay, execute: work)
+        } else {
+            guard leftDownAt != nil else { return }
+            leftHoldWork?.cancel()
+            leftDownAt = nil
+            if leftHolding { leftHolding = false; onLeftHoldEnd?() }
+        }
+    }
+
+    /// Another key went down with left ⌥: it's being used as a normal Option key.
+    func leftOptionUsedAsModifier() {
+        guard leftDownAt != nil, !leftHolding else { return }
+        leftUsed = true
+        leftHoldWork?.cancel()
+    }
+
     /// Returns true when the key was ours and should be swallowed.
     func key(_ code: Int64, down: Bool) -> Bool {
         if code == 53, down, downAt == nil { return onEscape?() ?? false }
@@ -151,6 +194,14 @@ final class RightOptionKey {
         }
         if code == Self.keyM {
             if down { usedAsModifier = true; holdWork?.cancel(); onMeeting?() }
+            return true
+        }
+        if code == Self.keyG {
+            if down { usedAsModifier = true; holdWork?.cancel(); onGuide?() }
+            return true
+        }
+        if code == Self.keyW {
+            if down { usedAsModifier = true; holdWork?.cancel(); onSwapWindow?() }
             return true
         }
         // Any other key: right ⌥ is just a modifier this time.
@@ -183,6 +234,14 @@ private func rightOptionCallback(proxy: CGEventTapProxy, type: CGEventType, even
         }
         return nil
     }
+    if type == .flagsChanged, code == RightOptionKey.leftOptionKeyCode {
+        let leftDown = event.flags.rawValue & 0x20 != 0
+        DispatchQueue.main.async { MainActor.assumeIsolated { RightOptionKey.shared.leftOption(down: leftDown) } }
+        return Unmanaged.passUnretained(event)
+    }
+    if type == .keyDown, event.flags.rawValue & 0x20 != 0, !rightDown {
+        DispatchQueue.main.async { MainActor.assumeIsolated { RightOptionKey.shared.leftOptionUsedAsModifier() } }
+    }
     if type == .flagsChanged {
         guard code == RightOptionKey.rightOptionKeyCode else { return Unmanaged.passUnretained(event) }
         DispatchQueue.main.async { MainActor.assumeIsolated { RightOptionKey.shared.rightOption(down: rightDown) } }
@@ -196,6 +255,6 @@ private func rightOptionCallback(proxy: CGEventTapProxy, type: CGEventType, even
     }
     guard rightDown else { return Unmanaged.passUnretained(event) }
     DispatchQueue.main.async { MainActor.assumeIsolated { _ = RightOptionKey.shared.key(code, down: down) } }
-    let ours = [RightOptionKey.keyT, RightOptionKey.keyM, RightOptionKey.keyV].contains(code)
+    let ours = [RightOptionKey.keyT, RightOptionKey.keyM, RightOptionKey.keyV, RightOptionKey.keyW, RightOptionKey.keyG].contains(code)
     return ours ? nil : Unmanaged.passUnretained(event)
 }

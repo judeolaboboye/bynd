@@ -2,13 +2,13 @@ import Foundation
 import AppKit
 import Security
 
-/// Your Oatmeal account: which site this copy of the app belongs to and who's signed in there. One
+/// Your Bynd account: which site this copy of the app belongs to and who's signed in there. One
 /// signed app serves every site deployed from the blueprint: a site's download page opens
-/// `oatmeal://connect?site=…` and sign-in comes back as `oatmeal://signed-in?token=…`. Oatmeal is free,
+/// `bynd://connect?site=…` and sign-in comes back as `bynd://signed-in?token=…`. Bynd is free,
 /// so nothing depends on it: with or without a site, everything works.
 @MainActor
-final class OatmealAccount: ObservableObject {
-    static let shared = OatmealAccount()
+final class ByndAccount: ObservableObject {
+    static let shared = ByndAccount()
 
     struct SiteInfo: Decodable, Equatable {
         var brand: String
@@ -22,7 +22,7 @@ final class OatmealAccount: ObservableObject {
         var email: String?
     }
 
-    /// The site's address, e.g. https://oatmeal.whop.site. From `oatmeal://connect`, else the build's default.
+    /// The site's address, e.g. https://bynd.whop.site. From `bynd://connect`, else the build's default.
     @Published private(set) var site: URL?
     @Published private(set) var info: SiteInfo?
     @Published private(set) var me: Me?
@@ -33,10 +33,10 @@ final class OatmealAccount: ObservableObject {
     private static let meKey = "account.me"
 
     var signedIn: Bool { token != nil }
-    var brand: String { info?.brand ?? "Oatmeal" }
+    var brand: String { info?.brand ?? "Bynd" }
 
     private init() {
-        let saved = UserDefaults.standard.string(forKey: Self.siteKey) ?? (Bundle.main.object(forInfoDictionaryKey: "OatmealSite") as? String) ?? ""
+        let saved = UserDefaults.standard.string(forKey: Self.siteKey) ?? (Bundle.main.object(forInfoDictionaryKey: "ByndSite") as? String) ?? ""
         site = URL(string: saved).flatMap { $0.scheme == "https" || $0.host == "localhost" ? $0 : nil }
         // Who was signed in last time, so the account shows offline.
         if let data = UserDefaults.standard.data(forKey: Self.meKey) { me = try? JSONDecoder().decode(Me.self, from: data) }
@@ -45,10 +45,11 @@ final class OatmealAccount: ObservableObject {
 
     // MARK: Links into the app
 
-    /// Handles `oatmeal://connect?site=…` and `oatmeal://signed-in?token=…&site=…`. True if it was ours.
+    /// Handles `bynd://connect?site=…` and `bynd://signed-in?token=…&site=…`. True if it was ours.
     @discardableResult
     func handle(_ url: URL) -> Bool {
-        guard url.scheme == "oatmeal", let host = url.host else { return false }
+        // "oatmeal://" too: the website still sends the old sign-in link.
+        guard url.scheme == "bynd" || url.scheme == "oatmeal", let host = url.host else { return false }
         let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let value = { (name: String) in query.first { $0.name == name }?.value }
         switch host {
@@ -169,7 +170,7 @@ final class OatmealAccount: ObservableObject {
 
 /// The sign-in token, kept in the login Keychain.
 private enum Keychain {
-    static let service = "com.oatmeal.app.account"
+    static let service = "com.bynd.app.account"
 
     static func get(_ account: String) -> String? {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,

@@ -88,7 +88,7 @@ struct GlassBackground: NSViewRepresentable {
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
-/// Listening: the app the words are going into, waves, and the Oatmeal mark.
+/// Listening: the app the words are going into, waves, and the Bynd mark.
 private struct ListeningCard: View {
     let target: DictationTarget
     @EnvironmentObject var pill: PillController
@@ -100,6 +100,9 @@ private struct ListeningCard: View {
                 if target == .task {
                     Image(systemName: "checklist").font(.system(size: 11, weight: .bold))
                         .frame(width: 22, height: 22).background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
+                } else if target == .journal {
+                    Image(systemName: "book.closed.fill").font(.system(size: 11, weight: .bold))
+                        .frame(width: 22, height: 22).background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
                 } else if let icon = pill.frontApp?.icon {
                     Image(nsImage: icon).resizable().frame(width: 22, height: 22)
                 } else {
@@ -107,7 +110,7 @@ private struct ListeningCard: View {
                         .frame(width: 22, height: 22).background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
                 }
             }
-            .help(target == .task ? "Becomes a task" : (pill.frontApp?.localizedName ?? ""))
+            .help(target == .task ? "Becomes a task" : target == .journal ? "Journal recording" : (pill.frontApp?.localizedName ?? ""))
             if let problem = dictation.micProblem {
                 Text(problem).font(DF.font(12, .semibold)).foregroundStyle(.white.opacity(0.85))
                     .lineLimit(1).fixedSize()
@@ -180,12 +183,12 @@ private struct RestingPill: View {
                 HStack(spacing: 10) {
                     BrandMarkMono(size: 22, color: .white.opacity(0.85))
                         .frame(width: 36, height: 36).background(.white.opacity(0.10), in: Circle())
-                    Text("Hold right \u{2325} to talk").font(DF.font(13, .semibold)).foregroundStyle(.white.opacity(0.85))
+                    Text("Tap right \u{2325} to talk").font(DF.font(13, .semibold)).foregroundStyle(.white.opacity(0.85))
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Open Oatmeal")
+            .help("Open Bynd")
             PillButton(symbol: "record.circle") { pill.toggleMeeting() }
                 .help("Take meeting notes")
         }
@@ -397,7 +400,7 @@ private struct LiveNotesCard: View {
                     .disabled(copyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     .help(tab == 0 ? "Copy my notes" : "Copy the transcript so far")
                 Button { pill.openApp(.meetings) } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
-                    .buttonStyle(.plain).foregroundStyle(DF.muted).help("Open in Oatmeal")
+                    .buttonStyle(.plain).foregroundStyle(DF.muted).help("Open in Bynd")
             }
             .padding(12)
             .overlay(alignment: .bottom) { Divider().overlay(DF.line) }

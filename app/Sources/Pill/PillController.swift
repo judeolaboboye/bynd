@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import SwiftData
 
-enum DictationTarget { case app, task }
+enum DictationTarget { case app, task, journal }
 
 enum PillState: Equatable {
     case resting
@@ -49,9 +49,16 @@ final class PillController: ObservableObject {
         rk.onHoldStart = { [weak self] in self?.startDictation(into: .app) }
         rk.onMakeTask = { [weak self] in self?.switchToTask() }
         rk.onHoldEnd = { [weak self] in Task { await self?.finishDictation() } }
-        rk.onTap = { [weak self] in self?.toggleSurface() }
+        rk.onTap = { [weak self] in self?.tapRightOption() }
+        rk.onSwapWindow = { [weak self] in self?.toggleSurface() }
+        rk.onGuide = {
+            if !GuideModel.shared.listening { AppModel.shared.open(.guide) }
+            GuideModel.shared.toggleListening()
+        }
+        rk.onLeftHoldStart = { [weak self] in self?.startCircleDictation() }
+        rk.onLeftHoldEnd = { [weak self] in Task { await self?.finishDictation() } }
         rk.onMeeting = { [weak self] in self?.toggleMeeting() }
-        rk.onDoubleTap = { [weak self] in self?.startHandsFree() }
+        rk.onDoubleTap = { [weak self] in self?.startHandsFree(into: .journal) }
         rk.onPasteLast = { [weak self] in self?.pasteLast() }
         rk.onScreenshot = { CaptureService.shared.screenshot() }
         rk.onRecord = { CaptureService.shared.toggleRecording() }
@@ -80,6 +87,7 @@ final class PillController: ObservableObject {
         }
         observeWindows()
         MeetingReminders.shared.start()
+        TaskRecording.shared.start()
         Task { await DictationService.shared.prepareModel() }
         promptTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.checkForMeeting() }
@@ -149,7 +157,7 @@ final class PillController: ObservableObject {
 
     // MARK: One surface at a time
 
-    /// The Oatmeal window is up front, so the pill steps aside.
+    /// The Bynd window is up front, so the pill steps aside.
     private var windowInFront: Bool {
         NSApp.isActive && NSApp.windows.contains { $0.isVisible && $0.isKeyWindow && !($0 is NSPanel) && $0.frame.width > 600 }
     }
@@ -197,7 +205,7 @@ final class PillController: ObservableObject {
 
     /// The stage is much bigger than the pill (so cards can grow without the window jumping). Clicks
     /// land on the pill only while the pointer is over it; everywhere else they go to the app below.
-    /// Polled rather than using event monitors, which miss moves over Oatmeal's own windows.
+    /// Polled rather than using event monitors, which miss moves over Bynd's own windows.
     private func watchPointer(_ on: Bool) {
         if on, pointerTimer == nil {
             pointerTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { _ in
@@ -221,7 +229,13 @@ final class PillController: ObservableObject {
 
     fileprivate var shouldShow: Bool { busy }
 
-    /// Tap right ⌥: window → pill, pill → window.
+    /// Tap right ⌥: start hands-free dictation, or stop it (and type it) if it's running.
+    func tapRightOption() {
+        if handsFree { Task { await finishDictation() }; return }
+        startHandsFree(into: .app)
+    }
+
+    /// Right ⌥ + W: window → pill, pill → window.
     func toggleSurface() {
         if handsFree { Task { await finishDictation() }; return }
         if windowInFront { AppModel.shared.hideWindow() } else { AppModel.shared.open(AppModel.shared.section) }
@@ -230,7 +244,7 @@ final class PillController: ObservableObject {
     func toggleMeeting() {
         Task { @MainActor in
             if MeetingService.shared.isRecording { await stopMeeting() }
-            else { await startMeeting(title: CalendarStore.shared.currentEvent()?.title ?? MeetingService.shared.detectedMeetingApp ?? "Meeting") }
+            else { let e = CalendarStore.shared.currentEvent(); await startMeeting(title: e?.title ?? MeetingService.shared.detectedMeetingApp ?? "Meeting", event: e) }
         }
     }
 
@@ -334,7 +348,7 @@ final class PillController: ObservableObject {
     func startDictation(into target: DictationTarget) {
         guard !MeetingService.shared.isRecording else { DFLog.log("dictation", "ignored: a meeting is recording"); return }
         if case .listening = state { DFLog.log("dictation", "ignored: already listening"); return }
-        DFLog.log("dictation", "start (\(target == .task ? "task" : "app"))")
+        DFLog.log("dictation", "start (\(target))")
         self.target = target
         let front = NSWorkspace.shared.frontmostApplication
         frontApp = front?.bundleIdentifier == Bundle.main.bundleIdentifier ? nil : front
@@ -344,16 +358,27 @@ final class PillController: ObservableObject {
         set(.listening(target))
     }
 
-    /// Double-tap right ⌥: keep listening with hands off the keyboard.
-    func startHandsFree() {
+    /// Keep listening with hands off the keyboard until the next tap.
+    /// Single tap right ⌥ = dictation into the app; double tap = a journal recording.
+    func startHandsFree(into target: DictationTarget = .app) {
         if case .listening = state { return }
         handsFree = true
+        startDictation(into: target)
+    }
+
+    /// Hold left ⌥: dictation, and every circle drawn with the pointer screenshots the screen.
+    private var circling = false
+    func startCircleDictation() {
+        if case .listening = state { return }
+        circling = true
         startDictation(into: .app)
+        CircleCapture.shared.start()
     }
 
     func dismiss() { set(.resting) }
 
     func cancelDictation() {
+        if circling { circling = false; CircleCapture.shared.stop() }
         handsFree = false
         DictationService.shared.cancel()
         DictationSounds.cancel()
@@ -363,27 +388,46 @@ final class PillController: ObservableObject {
     func finishDictation() async {
         guard case .listening(let target) = state else { return }
         handsFree = false
+        let shots = circling ? CircleCapture.shared.finish() : []
+        circling = false
         DictationSounds.stop()
         set(.transcribing)
         let raw = await DictationService.shared.stop()
         let seconds = Date().timeIntervalSince(listenStarted)
-        let appKind = target == .task ? TextFormatter.AppKind.standard : TextFormatter.kind(for: frontApp?.bundleIdentifier)
+        let appKind = target != .app ? TextFormatter.AppKind.standard : TextFormatter.kind(for: frontApp?.bundleIdentifier)
         let local = TextFormatter.format(raw, app: appKind, options: VoiceSettings.shared.options)
         DFLog.log("dictation", "released after \(String(format: "%.1f", seconds))s: \(raw.count) chars heard")
+        if local.isEmpty, !shots.isEmpty {
+            // Only circles, no words: paste the screenshots.
+            frontApp?.activate()
+            TextInserter.pasteImages(shots, after: 0.2)
+            set(.confirmed(title: "\(shots.count) screenshot\(shots.count == 1 ? "" : "s")", detail: "Pasted, and kept in Draw", taskID: nil))
+            settle(after: 2.5)
+            return
+        }
         guard !local.isEmpty else {
-            // Say so rather than vanish: a silent pill looks like Oatmeal broke.
-            set(.confirmed(title: "Didn\u{2019}t catch that", detail: "Hold right \u{2325} and speak", taskID: nil))
+            // Say so rather than vanish: a silent pill looks like Bynd broke.
+            set(.confirmed(title: "Didn\u{2019}t catch that", detail: "Tap right \u{2325} and speak", taskID: nil))
             settle(after: 2.5)
             return
         }
         let text = local
         let ctx = AppModel.shared.context
+        if target == .journal {
+            // Journal: kept in the Journal section, never typed into an app.
+            ctx.insert(DictationEntry(text: text, destination: "journal", appName: "", seconds: seconds))
+            try? ctx.save()
+            set(.confirmed(title: "Saved to Journal", detail: "\(text.split { $0.isWhitespace }.count) words", taskID: nil))
+            settle(after: 2.5)
+            return
+        }
         let appName = frontApp?.localizedName ?? ""
         do {
             // Put focus back where the words belong before pasting.
             frontApp?.activate()
             try? await Task.sleep(for: .milliseconds(60))
             let result = TextInserter.insert(text)
+            if !shots.isEmpty { TextInserter.pasteImages(shots) }   // the circled screenshots, after the words
             lastText = text
             ctx.insert(DictationEntry(text: text, destination: "app", appName: appName, seconds: seconds))
             try? ctx.save()
@@ -447,33 +491,59 @@ final class PillController: ObservableObject {
         case .resting, .meetingPrompt: break
         default: return
         }
-        let event = CalendarStore.shared.currentEvent()
+        // Only events you switched on are recorded; the rest of your calendar is left alone.
+        // Once you stop (or skip) one, it's done for today and won't start again.
         let autoIDs = Set((UserDefaults.standard.string(forKey: "autoRecordIDs") ?? "").split(separator: "|").map(String.init))
-        if let e = event, autoIDs.contains(e.id), dismissedPromptFor != e.id {
-            dismissedPromptFor = e.id
-            Task { await startMeeting(title: e.title) }
+        let cal = CalendarStore.shared
+        let chosen = cal.events(from: Date().addingTimeInterval(-86_400), to: Date().addingTimeInterval(120))
+            .filter { !$0.isAllDay && $0.start <= Date().addingTimeInterval(60) && $0.end > Date()
+                && autoIDs.contains($0.id) && !cal.isSkipped($0) }
+            .max { $0.start < $1.start }
+        if let e = chosen {
+            // Ask first, every time: it records only when you say yes, so nothing records without you knowing.
+            let key = CalendarStore.skipKey(e)
+            if !askedMeetings.contains(key) { askedMeetings.insert(key); askToStart(e) }
             return
         }
-        // A calendar meeting starting (within 2 min either side) pops the pill up.
-        if let e = event, abs(e.start.timeIntervalSinceNow) < 120, dismissedPromptFor != e.title {
-            meetingTitle = e.title; set(.meetingPrompt(e.title)); return
-        }
+        // A call detected in Zoom, Meet, Teams or FaceTime still offers notes (that's not the calendar).
         if let app = ms.detectedMeetingApp {
-            let title = event?.title ?? app
+            let title = app
             if dismissedPromptFor != title { meetingTitle = title; set(.meetingPrompt(title)) }
         } else if case .meetingPrompt = state {
             set(.resting)
         }
     }
 
+    /// Switched-on calendar meetings already asked about (event + start).
+    private var askedMeetings = Set<String>()
+
+    /// "Are you starting this meeting?" Yes records it; "Not this one" skips it for today.
+    private func askToStart(_ e: CalEvent) {
+        let alert = NSAlert()
+        alert.messageText = "Are you starting this meeting?"
+        alert.informativeText = "\u{201C}\(e.title)\u{201D}, \(e.start.formatted(date: .omitted, time: .shortened)) \u{2013} \(e.end.formatted(date: .omitted, time: .shortened)). Bynd records it and writes notes only if you say yes."
+        alert.addButton(withTitle: "Yes, record")
+        alert.addButton(withTitle: "Not this one")
+        NSApp.activate(ignoringOtherApps: true)
+        if alert.runModal() == .alertFirstButtonReturn {
+            Task { await startMeeting(title: e.title, event: e) }
+        } else {
+            CalendarStore.shared.skip(e)   // move on to the next switched-on event
+        }
+    }
+
     func dismissPrompt() {
-        if case .meetingPrompt(let t) = state { dismissedPromptFor = t }
+        if case .meetingPrompt(let t) = state {
+            dismissedPromptFor = t
+            // "Not this one": move on to the next event on the timeline.
+            if let e = meetingEvent ?? CalendarStore.shared.currentEvent(), e.title == t { CalendarStore.shared.skip(e) }
+        }
         set(.resting)
     }
 
-    func startMeeting(title: String) async {
+    func startMeeting(title: String, event: CalEvent? = nil) async {
         guard !MeetingService.shared.isRecording else { return }
-        meetingEvent = CalendarStore.shared.currentEvent()
+        meetingEvent = event
         myNotes = ""
         minimized = false
         meetingLikelyOver = false
@@ -494,6 +564,8 @@ final class PillController: ObservableObject {
         expanded = false
         minimized = false
         set(.transcribing)
+        // Stopped: this calendar event is done for today, so it won't start recording again.
+        if let e = meetingEvent { CalendarStore.shared.skip(e) }
         let rec = await MeetingService.shared.stop()
         let ctx = AppModel.shared.context
         let note = MeetingNote(title: rec.title, startedAt: rec.startedAt)

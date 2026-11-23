@@ -308,7 +308,7 @@ final class MeetingService: ObservableObject {
 
     static var meetingsDirectory: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("Oatmeal/Meetings", isDirectory: true)
+        return appSupport.appendingPathComponent("Bynd/Meetings", isDirectory: true)
     }
 
     private static func fileStamp(_ date: Date) -> String {
