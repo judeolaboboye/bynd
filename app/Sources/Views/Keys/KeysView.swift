@@ -20,7 +20,7 @@ enum ByndKeys {
             Entry(keys: ["Hold left ⌥"], what: "Draw: keep it held and circle anything on screen. Each circle saves a cropped screenshot of just that area in Draw and puts it on the clipboard. No dictation; a tap does nothing"),
         ]),
         Group(title: "Guide (ask how to do anything on your Mac)", entries: [
-            Entry(keys: ["Right ⌥", "G"], what: "Ask Guide by voice from any app; press again to send. It answers out loud and can point at things"),
+            Entry(keys: ["Right ⌥", "G"], what: "Ask Guide by voice from wherever you are: a badge shows Listening, press again to send (Esc cancels). It answers in the badge and out loud, and can point at things. It can\u{2019}t click or type for you"),
         ]),
         Group(title: "Tasks (record your screen and face while you work)", entries: [
             Entry(keys: ["Tasks section"], what: "Type what you\u{2019}re doing and press Start task, or switch events on in the calendar panel: Bynd asks \u{201C}Are you working?\u{201D} when they start"),

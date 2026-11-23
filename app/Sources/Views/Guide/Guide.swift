@@ -30,20 +30,33 @@ final class GuideModel: ObservableObject {
     private let voice = AVSpeechSynthesizer()
 
     /// Right ⌥ + G, or the mic button: start listening; again: send what you said.
-    func toggleListening() {
+    /// From the key, a floating badge shows what's happening without opening Bynd.
+    func toggleListening(fromKey: Bool = false) {
+        if fromKey { GuideHUD.shared.show() }
         if listening {
             listening = false
+            RightOptionKey.escapeIsOurs.withLock { $0 = false }
             Task {
                 let heard = await DictationService.shared.stop()
                 let q = heard.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !q.isEmpty { ask(q) }
+                if !q.isEmpty { ask(q) } else { GuideHUD.shared.hide(after: 1.5) }
             }
         } else {
             guard !busy else { return }
             voice.stopSpeaking(at: .immediate)
             listening = true
+            RightOptionKey.escapeIsOurs.withLock { $0 = true }   // so Esc cancels
             DictationService.shared.start()
         }
+    }
+
+    /// Esc while listening: drop it, ask nothing.
+    func cancelListening() {
+        guard listening else { return }
+        listening = false
+        RightOptionKey.escapeIsOurs.withLock { $0 = false }
+        DictationService.shared.cancel()
+        GuideHUD.shared.hide()
     }
 
     func clear() { messages = []; voice.stopSpeaking(at: .immediate) }
@@ -133,6 +146,13 @@ final class GuideModel: ObservableObject {
         p.arguments = ["-x", "-D", String(index), url.path]
         try? p.run(); p.waitUntilExit()
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        // Retina screenshots are twice the size in pixels; scale to screen points so the coordinates
+        // Guide answers with match the screen.
+        let r = Process()
+        r.executableURL = URL(fileURLWithPath: "/usr/bin/sips")
+        r.arguments = ["--resampleWidth", String(Int(bounds.width)), url.path]
+        r.standardOutput = FileHandle.nullDevice; r.standardError = FileHandle.nullDevice
+        try? r.run(); r.waitUntilExit()
         return (bounds.size, bounds.origin)
     }
 
@@ -220,7 +240,7 @@ struct GuideView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             NotionHeader(icon: .symbol("questionmark.bubble"), title: "Guide",
-                         description: "Ask how to do anything on your Mac. Guide looks at your screen, answers out loud and points at things. Press right \u{2325} + G to ask by voice from any app.") {
+                         description: "Ask how to do anything on your Mac. Guide looks at your screen, answers out loud and points at things. It can\u{2019}t click or type for you. Press right \u{2325} + G to ask by voice from wherever you are.") {
                 EmptyView()
             } below: {
                 HStack(spacing: 16) {
@@ -274,5 +294,92 @@ struct GuideView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(DF.paper)
+    }
+}
+
+/// The small floating badge for right ⌥ + G: Listening (red dot), Thinking, then the answer.
+/// It never takes focus, so you stay in whatever app you're in. Click it to open Guide.
+@MainActor
+final class GuideHUD {
+    static let shared = GuideHUD()
+    private var panel: NSPanel?
+    private var hideWork: DispatchWorkItem?
+
+    func show() {
+        hideWork?.cancel()
+        if panel == nil {
+            let p = NSPanel(contentRect: CGRect(x: 0, y: 0, width: 420, height: 160),
+                            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+            p.isOpaque = false; p.backgroundColor = .clear; p.hasShadow = false
+            p.level = .statusBar
+            p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+            p.contentView = NSHostingView(rootView: GuideBadge(model: GuideModel.shared))
+            panel = p
+        }
+        let screen = NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        if let vf = screen?.visibleFrame, let p = panel {
+            p.setFrameOrigin(CGPoint(x: vf.midX - p.frame.width / 2, y: vf.minY + 70))
+        }
+        panel?.orderFrontRegardless()
+    }
+
+    func hide(after seconds: Double = 0) {
+        hideWork?.cancel()
+        let w = DispatchWorkItem { [weak self] in self?.panel?.orderOut(nil) }
+        hideWork = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: w)
+    }
+}
+
+private struct GuideBadge: View {
+    @ObservedObject var model: GuideModel
+    @State private var pulse = false
+
+    var body: some View {
+        VStack {
+            Spacer(minLength: 0)
+            HStack(alignment: .top, spacing: 10) {
+                Group {
+                    if model.listening {
+                        Circle().fill(.red).frame(width: 10, height: 10).opacity(pulse ? 0.35 : 1)
+                            .onAppear { withAnimation(.easeInOut(duration: 0.7).repeatForever()) { pulse = true } }
+                    } else if model.busy {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "questionmark.bubble.fill").foregroundStyle(.white.opacity(0.8))
+                    }
+                }
+                .frame(width: 16).padding(.top, 2)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title).font(.system(size: 13, weight: .semibold))
+                    if let sub = subtitle {
+                        Text(sub).font(.system(size: 12)).foregroundStyle(.white.opacity(0.8))
+                            .lineLimit(5).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .frame(maxWidth: 420, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color(.sRGB, red: 0.09, green: 0.1, blue: 0.11, opacity: 0.94)))
+            .onTapGesture { AppModel.shared.open(.guide); GuideHUD.shared.hide() }
+        }
+        .onChange(of: model.messages) { _, list in
+            // An answer arrived: show it a while, then go.
+            if let last = list.last, !last.fromYou { GuideHUD.shared.hide(after: min(20, 6 + Double(last.text.count) / 25)) }
+        }
+    }
+
+    private var title: String {
+        if model.listening { return "Guide is listening\u{2026}" }
+        if model.busy { return "Guide is thinking\u{2026}" }
+        return "Guide"
+    }
+
+    private var subtitle: String? {
+        if model.listening { return "Ask your question, then press right \u{2325} + G to send. Esc cancels." }
+        if model.busy { return model.messages.last(where: { $0.fromYou })?.text }
+        return model.messages.last(where: { !$0.fromYou })?.text
     }
 }

@@ -52,8 +52,8 @@ final class PillController: ObservableObject {
         rk.onTap = { [weak self] in self?.tapRightOption() }
         rk.onSwapWindow = { [weak self] in self?.toggleSurface() }
         rk.onGuide = {
-            if !GuideModel.shared.listening { AppModel.shared.open(.guide) }
-            GuideModel.shared.toggleListening()
+            // Stay wherever you are: a small badge shows Listening, then the answer.
+            GuideModel.shared.toggleListening(fromKey: true)
         }
         rk.onLeftHoldStart = { [weak self] in self?.startCircleDictation() }
         rk.onLeftHoldEnd = { [weak self] in self?.endCircleDictation() }
@@ -65,6 +65,7 @@ final class PillController: ObservableObject {
         rk.tapIsImmediate = { [weak self] in self?.handsFree == true }
         rk.onEscape = { [weak self] in
             guard let self else { return false }
+            if GuideModel.shared.listening { GuideModel.shared.cancelListening(); return true }
             if case .notPasted = self.state { self.dismiss(); return true }
             guard case .listening = self.state else { return false }
             self.cancelDictation(); return true
