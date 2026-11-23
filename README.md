@@ -15,9 +15,10 @@ written by the AI you already pay for.
   cursor is. It drops the ums, follows "scratch that", and handles spoken punctuation.
 - **Journal**: double-tap right ⌥, talk as long as you like, tap right ⌥ to finish. It's transcribed and
   kept in the Journal section instead of being typed anywhere.
-- **Draw** (from [BetterVoice](https://github.com/TarunTomar122/better-voice), MIT): hold
-  left ⌥, talk, and circle anything with the pointer. Each circle screenshots the screen; on release the
-  words and the screenshots are pasted together. All of them are kept in the Draw section.
+- **Draw** (circle detection from [BetterVoice](https://github.com/TarunTomar122/better-voice), MIT): hold
+  left ⌥ and circle anything with the pointer. Each circle saves a cropped screenshot of just that area in the
+  Draw section and puts it on the clipboard, with a box under each to describe it. Draw never dictates (that's
+  right ⌥) and a tap of left ⌥ does nothing.
 - **Guide** (inspired by [Clicky](https://github.com/farzaa/clicky), MIT): ask how to do anything, by
   voice (right ⌥ G) or text. It looks at your screen, answers out loud with the Mac's voice and points at
   things. It thinks with Claude Code on your own plan; no API keys.

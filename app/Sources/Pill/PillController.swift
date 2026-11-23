@@ -366,34 +366,25 @@ final class PillController: ObservableObject {
         startDictation(into: target)
     }
 
-    /// Hold left ⌥: dictation, and every circle drawn with the pointer screenshots the screen.
     private var circling = false
-    /// Hold left ⌥: nothing shows and nothing records until you draw a circle. The first circle
-    /// screenshots that area and starts dictation; let go and the words and screenshots are pasted.
+    /// Draw: hold left ⌥ and circle things. Each circle is a cropped screenshot, saved in Draw and put on
+    /// the clipboard. Draw only: no dictation (that's right ⌥), nothing pasted, nothing on screen but the ring.
     func startCircleDictation() {
-        if case .listening = state { return }
+        guard !circling else { return }
         circling = true
-        CircleCapture.shared.start(onFirstCircle: { [weak self] in
-            guard let self, self.circling else { return }
-            self.startDictation(into: .app)
-        }, onReleased: { [weak self] in self?.endCircleDictation() })
+        CircleCapture.shared.start(onReleased: { [weak self] in self?.endCircleDictation() })
     }
 
     /// Left ⌥ released (or found to be up).
     func endCircleDictation() {
         guard circling else { return }
-        if case .listening = state {
-            Task { await finishDictation() }       // pastes the words, then the screenshots
-        } else {
-            circling = false                        // no circle drawn: nothing happened, nothing to do
-            CircleCapture.shared.stop()
-        }
+        circling = false
+        CircleCapture.shared.finish()
     }
 
     func dismiss() { set(.resting) }
 
     func cancelDictation() {
-        if circling { circling = false; CircleCapture.shared.stop() }
         handsFree = false
         DictationService.shared.cancel()
         DictationSounds.cancel()
@@ -403,8 +394,6 @@ final class PillController: ObservableObject {
     func finishDictation() async {
         guard case .listening(let target) = state else { return }
         handsFree = false
-        let shots = circling ? CircleCapture.shared.finish() : []
-        circling = false
         DictationSounds.stop()
         set(.transcribing)
         let raw = await DictationService.shared.stop()
@@ -412,14 +401,6 @@ final class PillController: ObservableObject {
         let appKind = target != .app ? TextFormatter.AppKind.standard : TextFormatter.kind(for: frontApp?.bundleIdentifier)
         let local = TextFormatter.format(raw, app: appKind, options: VoiceSettings.shared.options)
         DFLog.log("dictation", "released after \(String(format: "%.1f", seconds))s: \(raw.count) chars heard")
-        if local.isEmpty, !shots.isEmpty {
-            // Only circles, no words: paste the screenshots.
-            frontApp?.activate()
-            TextInserter.pasteImages(shots, after: 0.2)
-            set(.confirmed(title: "\(shots.count) screenshot\(shots.count == 1 ? "" : "s")", detail: "Pasted, and kept in Draw", taskID: nil))
-            settle(after: 2.5)
-            return
-        }
         guard !local.isEmpty else {
             // Say so rather than vanish: a silent pill looks like Bynd broke.
             set(.confirmed(title: "Didn\u{2019}t catch that", detail: "Tap right \u{2325} and speak", taskID: nil))
@@ -442,7 +423,6 @@ final class PillController: ObservableObject {
             frontApp?.activate()
             try? await Task.sleep(for: .milliseconds(60))
             let result = TextInserter.insert(text)
-            if !shots.isEmpty { TextInserter.pasteImages(shots) }   // the circled screenshots, after the words
             lastText = text
             ctx.insert(DictationEntry(text: text, destination: "app", appName: appName, seconds: seconds))
             try? ctx.save()

@@ -16,8 +16,8 @@ enum ByndKeys {
         Group(title: "Journal", entries: [
             Entry(keys: ["Double-tap right ⌥"], what: "Journal recording: talk, tap right ⌥ to finish. Saved in Journal, not typed"),
         ]),
-        Group(title: "Draw (talk and circle what you mean)", entries: [
-            Entry(keys: ["Hold left ⌥"], what: "Talk while holding; circle things on screen with the pointer to screenshot them. Let go: text and screenshots are pasted together. Every drawing is kept in Draw"),
+        Group(title: "Draw (cropped screenshots)", entries: [
+            Entry(keys: ["Hold left ⌥"], what: "Draw: keep it held and circle anything on screen. Each circle saves a cropped screenshot of just that area in Draw and puts it on the clipboard. No dictation; a tap does nothing"),
         ]),
         Group(title: "Guide (ask how to do anything on your Mac)", entries: [
             Entry(keys: ["Right ⌥", "G"], what: "Ask Guide by voice from any app; press again to send. It answers out loud and can point at things"),
@@ -45,7 +45,7 @@ struct KeysView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 NotionHeader(icon: .symbol("command"), title: "Keys",
-                             description: "Every shortcut in Bynd. Your voice alone: tap or hold right \u{2325}. Your voice with drawing: hold left \u{2325} and circle things.") {
+                             description: "Every shortcut in Bynd. Your voice alone: tap or hold right \u{2325}. Cropped screenshots: hold left \u{2325} and circle things.") {
                     EmptyView()
                 } below: { EmptyView() }
                 ForEach(ByndKeys.groups) { group in

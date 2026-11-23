@@ -6,13 +6,14 @@ import SwiftUI
 struct CircleScreenshotsView: View {
     @State private var files: [URL] = []
     @State private var selected = Set<URL>()
+    @State private var notes: [String: String] = DrawNotes.all()
     private let columns = [GridItem(.adaptive(minimum: 220, maximum: 320), spacing: 14)]
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 NotionHeader(icon: .symbol("pencil.and.scribble"), title: "Draw",
-                             description: "Hold left \u{2325}, talk, and circle anything on screen. Each circle you draw is a screenshot, pasted after your words and kept here.") {
+                             description: "Hold left \u{2325} and circle anything on screen. Each circle is a cropped screenshot of just that area, kept here and put on your clipboard. Write what each one is about below it.") {
                     EmptyView()
                 } below: { EmptyView() }
                 HStack {
@@ -32,7 +33,7 @@ struct CircleScreenshotsView: View {
                 if files.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Nothing drawn yet").font(DF.font(16, .semibold))
-                        Text("Hold left \u{2325}, then draw a circle around something with the pointer.")
+                        Text("Hold left \u{2325} and draw a circle around something with the pointer.")
                             .font(DF.font(15)).foregroundStyle(DF.muted)
                     }
                     .padding(.top, 28)
@@ -63,6 +64,11 @@ struct CircleScreenshotsView: View {
                 .onTapGesture(count: 2) { NSWorkspace.shared.open(url) }
                 .onTapGesture { if isSel { selected.remove(url) } else { selected.insert(url) } }
             Text(url.deletingPathExtension().lastPathComponent).font(DF.font(12)).foregroundStyle(DF.muted).lineLimit(1)
+            TextField("Describe this screenshot\u{2026}", text: Binding(
+                get: { notes[url.lastPathComponent] ?? "" },
+                set: { v in notes[url.lastPathComponent] = v; DrawNotes.set(v, for: url.lastPathComponent) }),
+                      axis: .vertical)
+                .textFieldStyle(.roundedBorder).font(DF.font(13)).lineLimit(1...4)
         }
         .contextMenu {
             Button("Open") { NSWorkspace.shared.open(url) }

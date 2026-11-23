@@ -400,7 +400,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         add("Start or Stop Recording  (fn ⌘)", #selector(toggleRecording), "", [])
         add("Show Captures Folder", #selector(showCaptures), "", [])
         menu.addItem(.separator())
-        let hint = NSMenuItem(title: "Tap right ⌥ to dictate (hold for a quick one) · double-tap for Journal · hold left ⌥ and circle to Draw", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: "Tap right ⌥ to dictate (hold for a quick one) · double-tap for Journal · hold left ⌥ and circle to Draw a cropped screenshot", action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
         menu.addItem(withTitle: "Show Pill", action: #selector(togglePill), keyEquivalent: "").target = self

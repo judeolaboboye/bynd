@@ -10,7 +10,7 @@ import os
 ///   right ⌥ + M    → start or stop meeting notes
 ///   right ⌥ + W    → swap between the pill and the Bynd window (what a tap used to do)
 ///   right ⌥ + G    → ask Guide by voice; press again to send
-///   hold left ⌥    → dictate and circle things on screen to screenshot them (from BetterVoice);
+///   hold left ⌥    → Draw: circle things on screen for cropped screenshots (no dictation);
 ///                    left ⌥ with any other key is just the normal Option key
 ///
 /// It also hears fn for captures, clear of every voice key:
@@ -38,7 +38,7 @@ final class RightOptionKey {
     var onSwapWindow: (() -> Void)?
     /// Right ⌥ + G: ask Guide by voice (again to send).
     var onGuide: (() -> Void)?
-    /// Hold left ⌥ alone: dictation with circle screenshots. Released: finish.
+    /// Hold left ⌥ alone: Draw (circle screenshots). Released: finish.
     var onLeftHoldStart: (() -> Void)?
     var onLeftHoldEnd: (() -> Void)?
     private var leftDownAt: Date?
@@ -155,7 +155,10 @@ final class RightOptionKey {
             guard leftDownAt == nil, downAt == nil else { return }
             leftDownAt = Date(); leftUsed = false; leftHolding = false
             let work = DispatchWorkItem { [weak self] in
-                guard let self, self.leftDownAt != nil, !self.leftUsed else { return }
+                // Only a real hold: a tap (or a lost release) never starts Draw.
+                guard let self, self.leftDownAt != nil, !self.leftUsed, NSEvent.modifierFlags.contains(.option) else {
+                    self?.leftDownAt = nil; return
+                }
                 self.leftHolding = true
                 self.onLeftHoldStart?()
             }

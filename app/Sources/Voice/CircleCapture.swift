@@ -76,15 +76,15 @@ struct CircleGestureDetector {
     }
 }
 
-/// While left ⌥ is held: silently follows the pointer. Nothing shows and nothing records until you draw a
-/// circle. Each circle screenshots just the area you circled (with a little margin), flashes a blue ring
-/// there to confirm, and the first one starts dictation.
+/// Draw: while left ⌥ is held, silently follows the pointer. Each circle you draw screenshots just the
+/// area you circled (with a little margin), flashes a blue ring there, saves it in Draw and puts it on the
+/// clipboard. Draw never dictates and never pastes into other apps.
 @MainActor
 final class CircleCapture {
     static let shared = CircleCapture()
 
     /// Where Draw screenshots are kept (shown in the Draw section).
-    static var folder: URL {
+    nonisolated static var folder: URL {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Pictures/Bynd/Draw", isDirectory: true)
     }
 
@@ -92,22 +92,19 @@ final class CircleCapture {
     private var timer: Timer?
     private var started = Date()
     private(set) var captured: [URL] = []
-    private var onFirstCircle: (() -> Void)?
     private var onReleased: (() -> Void)?
     private var optionUpSince: Date?
     private var pulse: NSWindow?
 
     private init() {}
 
-    /// `onFirstCircle` runs once, at the first circle. `onReleased` runs if left ⌥ turns out to be up
-    /// (a missed key release), so it can never get stuck.
-    func start(onFirstCircle: @escaping () -> Void, onReleased: @escaping () -> Void) {
+    /// `onReleased` runs as soon as left ⌥ is found to be up (a missed key release), so it can never get stuck.
+    func start(onReleased: @escaping () -> Void) {
         stop()
         detector.reset()
         captured = []
         started = Date()
         optionUpSince = nil
-        self.onFirstCircle = onFirstCircle
         self.onReleased = onReleased
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in
             Task { @MainActor in CircleCapture.shared.tick() }
@@ -124,7 +121,7 @@ final class CircleCapture {
 
     func stop() {
         timer?.invalidate(); timer = nil
-        onFirstCircle = nil; onReleased = nil
+        onReleased = nil
     }
 
     var isActive: Bool { timer != nil }
@@ -133,7 +130,7 @@ final class CircleCapture {
         // Safety: if ⌥ isn't actually held any more, treat it as released.
         if !NSEvent.modifierFlags.contains(.option) {
             if optionUpSince == nil { optionUpSince = Date() }
-            if let t = optionUpSince, Date().timeIntervalSince(t) > 0.25 { let r = onReleased; stop(); r?(); return }
+            if let t = optionUpSince, Date().timeIntervalSince(t) > 0.1 { let r = onReleased; stop(); r?(); return }
         } else { optionUpSince = nil }
         let p = NSEvent.mouseLocation
         if let g = detector.add(point: p, at: Date().timeIntervalSince(started)) { capture(around: g) }
@@ -164,10 +161,11 @@ final class CircleCapture {
             return
         }
         captured.append(url)
+        // On the clipboard too, in case you want to paste it somewhere yourself.
+        if let image = NSImage(contentsOf: url) { NSPasteboard.general.clearContents(); NSPasteboard.general.writeObjects([image]) }
         NSSound(named: "Tink")?.play()
         showPulse(at: g)
-        DFLog.log("circle", "captured \(url.lastPathComponent)")
-        if captured.count == 1 { onFirstCircle?() }
+        DFLog.log("circle", "captured \(url.lastPathComponent) \(Int(r.width))x\(Int(r.height))")
     }
 
     /// A short blue ring where you circled, so you know it was captured.
@@ -199,5 +197,21 @@ private struct PulseRing: View {
             .opacity(grow ? 0 : 1)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onAppear { withAnimation(.easeOut(duration: 0.6)) { grow = true } }
+    }
+}
+
+/// What you wrote about each Draw screenshot, kept next to them in Draw/descriptions.json.
+enum DrawNotes {
+    static var file: URL { CircleCapture.folder.appendingPathComponent("descriptions.json") }
+    static func all() -> [String: String] {
+        guard let d = try? Data(contentsOf: file) else { return [:] }
+        return (try? JSONDecoder().decode([String: String].self, from: d)) ?? [:]
+    }
+    static func set(_ text: String, for name: String) {
+        var a = all()
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty { a[name] = nil } else { a[name] = t }
+        try? FileManager.default.createDirectory(at: CircleCapture.folder, withIntermediateDirectories: true)
+        if let d = try? JSONEncoder().encode(a) { try? d.write(to: file, options: .atomic) }
     }
 }
