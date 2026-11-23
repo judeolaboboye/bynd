@@ -1,42 +1,35 @@
-# Oatmeal: Jude's all-in-one plan (2026-11-22)
+# Bynd: Jude's all-in-one Mac app (status 2026-11-23)
 
-Goal: one app to manage. Oatmeal (Jude's fork) gets BetterVoice's features, a free Clicky-style "Guide",
-Journaling and Task Recording. Nirvana Wheel stays its own app. Resonant Community stays as it is for now.
-Every change also updates Oatmeal's in-app descriptions, onboarding and guides, not just the feature.
+Bynd is Jude's fork of Oatmeal (MIT), renamed and extended so one app replaces BetterVoice, Clicky and
+Oatmeal. Nirvana Wheel stays its own app (github.com/judeolaboboye/nirvana-wheel). Resonant Community stays
+as it is for now.
 
-## Keys (Jude's layout)
+## Keys
 | Key | Does |
 |---|---|
-| Right ⌥ **tap once** | Start dictation (long, hands-free). Tap right ⌥ again to stop and type it |
-| Right ⌥ **press and hold** | Short dictation: stops and types when you let go |
-| Right ⌥ **double tap** | Journal recording: transcribed like dictation, but saved in **Journaling** (not typed) |
-| Left ⌥ **hold + circle things** | BetterVoice dictation with circle-to-screenshot: every circle you draw captures the screen; text + screenshots are pasted together |
-| fn ⌘ | Screen recording (Oatmeal Capture, unchanged) |
-| fn Space | Screenshot (unchanged) |
-(Old Oatmeal double-tap "hands-free" is replaced by the single tap.)
+| Right ⌥ tap | Start dictating hands-free; tap again to stop and type it |
+| Right ⌥ hold | Quick dictation, typed when you let go |
+| Right ⌥ double tap | Journal recording, kept in Journal (not typed) |
+| Right ⌥ + G | Guide by voice: a badge shows Listening, press again to send, Esc cancels |
+| Right ⌥ + W / M / T / V | Window / meeting notes / dictation as a task / paste last again |
+| Hold left ⌥ + circle | Draw: a cropped screenshot of the circled area, saved in Draw and on the clipboard. No dictation; a tap does nothing |
+| fn ⌘ / fn Space | Screen recording / screenshot |
 
-## New sections in the app
-- **Keys**: every shortcut and what it does, in one place.
-- **Screenshots**: every circle screenshot from left-⌥ dictation, with date, open, reveal, delete.
-- **Journaling**: double-tap recordings with transcript, play, copy, delete.
-- **Guide**: the free Clicky. Ask out loud or type a question about what's on screen; it answers and
-  points at things. Thinks with Claude Code on Jude's plan (`claude -p`, like Oatmeal's notes), listens with
-  Oatmeal's on-device speech, talks back with the Mac's built-in voice. No API keys, no AssemblyAI,
-  no ElevenLabs, no Cloudflare (Cloudflare only hid API keys in Clicky; there are none here).
-- **Tasks** (own section, 2026-11-23): Start task button, list of task recordings for b-roll, and during working hours from Jude's calendar (a calendar or event title he picks, repeats
-  however the calendar repeats), Oatmeal asks "Are you working?". Yes = record screen + face only
-  (no call, nobody else), saved as a task recording.
+## Sections (all done)
+- **Meetings**: notes written by Claude Code on Jude's plan. Only events switched on in the calendar panel;
+  Bynd asks "Are you starting this meeting?" and records only on yes. Stopped or skipped = done for the day.
+- **Tasks**: screen + face recordings for b-roll. Up next card, calendar panel switches, "Are you working?"
+  before recording, Start task button, separate screen / camera / audio files per recording, 20 GB storage
+  check (deletes only with an OK, to the Trash), Google Drive for desktop copy into My Drive → Bynd (50 GB cap).
+- **Flow**, **Journal**, **Captures**, **Draw** (with a description box per screenshot).
+- **Guide**: free Clicky-style helper. Looks at one screenshot, answers out loud, can point with an arrow.
+  It cannot click or type.
+- **Keys**: every shortcut on one page.
 
-## Order
-1. Build current Oatmeal from source, signed with "BetterVoice Local Signing" so permissions stick.
-2. New key layout (right ⌥ tap / hold / double tap) + Journaling.
-3. Left ⌥ circle dictation + Screenshots section (port from BetterVoice).
-4. Keys section; update onboarding, descriptions, README.
-5. Task Recording from calendar working hours.
-6. Guide (free Clicky).
-7. Remove `../clicky` (Jude said yes) once Guide works.
+## Credits
+Oatmeal by Branden Chong (MIT). Circle detection from BetterVoice by Tarun Tomar (MIT). Guide inspired by
+Clicky by Farza (MIT).
 
-## Notes
-- BetterVoice source: `../better-voice` (circle detection, capture, paste flow).
-- Clicky source for the Guide idea: `../clicky` (MIT).
-- Oatmeal needs macOS 26 + Xcode 26 + XcodeGen.
+## Open
+- Remove the old `clicky` folder in Homespace once Jude is happy with Guide.
+- Ideas not built: letting Guide operate the Mac (bigger and riskier; only if Jude asks).
