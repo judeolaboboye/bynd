@@ -76,8 +76,9 @@ struct CircleGestureDetector {
     }
 }
 
-/// While left ⌥ is held: follows the pointer, and each circle drawn screenshots the display under it.
-/// Shows a blue trail and a pulse where each capture happened.
+/// While left ⌥ is held: silently follows the pointer. Nothing shows and nothing records until you draw a
+/// circle. Each circle screenshots just the area you circled (with a little margin), flashes a blue ring
+/// there to confirm, and the first one starts dictation.
 @MainActor
 final class CircleCapture {
     static let shared = CircleCapture()
@@ -91,18 +92,23 @@ final class CircleCapture {
     private var timer: Timer?
     private var started = Date()
     private(set) var captured: [URL] = []
-    private var overlays: [NSWindow] = []
-    private let trail = TrailModel()
+    private var onFirstCircle: (() -> Void)?
+    private var onReleased: (() -> Void)?
+    private var optionUpSince: Date?
+    private var pulse: NSWindow?
 
     private init() {}
 
-    func start() {
+    /// `onFirstCircle` runs once, at the first circle. `onReleased` runs if left ⌥ turns out to be up
+    /// (a missed key release), so it can never get stuck.
+    func start(onFirstCircle: @escaping () -> Void, onReleased: @escaping () -> Void) {
         stop()
         detector.reset()
         captured = []
         started = Date()
-        trail.points = []
-        showTrail()
+        optionUpSince = nil
+        self.onFirstCircle = onFirstCircle
+        self.onReleased = onReleased
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in
             Task { @MainActor in CircleCapture.shared.tick() }
         }
@@ -118,95 +124,80 @@ final class CircleCapture {
 
     func stop() {
         timer?.invalidate(); timer = nil
-        overlays.forEach { $0.orderOut(nil) }
-        overlays = []
+        onFirstCircle = nil; onReleased = nil
     }
 
+    var isActive: Bool { timer != nil }
+
     private func tick() {
+        // Safety: if ⌥ isn't actually held any more, treat it as released.
+        if !NSEvent.modifierFlags.contains(.option) {
+            if optionUpSince == nil { optionUpSince = Date() }
+            if let t = optionUpSince, Date().timeIntervalSince(t) > 0.25 { let r = onReleased; stop(); r?(); return }
+        } else { optionUpSince = nil }
         let p = NSEvent.mouseLocation
-        let t = Date().timeIntervalSince(started)
-        trail.add(p, at: t)
-        if let g = detector.add(point: p, at: t) { capture(around: g) }
+        if let g = detector.add(point: p, at: Date().timeIntervalSince(started)) { capture(around: g) }
+    }
+
+    /// The circled area plus a margin, as a global top-left rectangle for `screencapture -R`.
+    nonisolated static func region(for g: CircleGestureDetector.Gesture, screen: CGRect, mainHeight: CGFloat) -> CGRect {
+        let side = max(g.radius * 2 * 1.3, 160)
+        var r = CGRect(x: g.center.x - side / 2, y: g.center.y - side / 2, width: side, height: side)
+        r = r.intersection(screen)                       // keep it on the screen it was drawn on
+        return CGRect(x: r.minX, y: mainHeight - r.maxY, width: r.width, height: r.height)   // AppKit → top-left
     }
 
     private func capture(around g: CircleGestureDetector.Gesture) {
-        let screens = NSScreen.screens
-        let index = screens.firstIndex { $0.frame.contains(g.center) } ?? 0
+        let screen = NSScreen.screens.first { $0.frame.contains(g.center) }?.frame ?? NSScreen.main?.frame ?? .zero
+        let mainH = NSScreen.screens.first?.frame.maxY ?? 0
+        let r = Self.region(for: g, screen: screen, mainHeight: mainH)
         try? FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
         let url = Self.folder.appendingPathComponent("Draw \(f.string(from: Date())) \(captured.count + 1).png")
-        // Hide the trail for the shot itself, so it isn't in the picture.
-        overlays.forEach { $0.alphaValue = 0 }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        p.arguments = ["-x", "-D", String(index + 1), url.path]
+        p.arguments = ["-x", "-R", "\(Int(r.minX)),\(Int(r.minY)),\(Int(r.width)),\(Int(r.height))", url.path]
         try? p.run()
         p.waitUntilExit()
-        overlays.forEach { $0.alphaValue = 1 }
         guard FileManager.default.fileExists(atPath: url.path) else {
             DFLog.log("circle", "screenshot failed (Screen Recording allowed?)")
             return
         }
         captured.append(url)
         NSSound(named: "Tink")?.play()
-        trail.pulse = g
+        showPulse(at: g)
         DFLog.log("circle", "captured \(url.lastPathComponent)")
+        if captured.count == 1 { onFirstCircle?() }
     }
 
-    private func showTrail() {
-        for screen in NSScreen.screens {
-            let w = NSWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
-            w.isOpaque = false
-            w.backgroundColor = .clear
-            w.ignoresMouseEvents = true
-            w.level = .screenSaver
-            w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-            w.contentView = NSHostingView(rootView: TrailView(model: trail, screenFrame: screen.frame))
-            w.orderFrontRegardless()
-            overlays.append(w)
+    /// A short blue ring where you circled, so you know it was captured.
+    private func showPulse(at g: CircleGestureDetector.Gesture) {
+        pulse?.orderOut(nil)
+        let side = g.radius * 2 + 40
+        let w = NSWindow(contentRect: CGRect(x: g.center.x - side / 2, y: g.center.y - side / 2, width: side, height: side),
+                         styleMask: .borderless, backing: .buffered, defer: false)
+        w.isOpaque = false; w.backgroundColor = .clear; w.ignoresMouseEvents = true
+        w.level = .screenSaver
+        w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        w.contentView = NSHostingView(rootView: PulseRing(diameter: g.radius * 2))
+        w.orderFrontRegardless()
+        pulse = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
+            if self?.pulse === w { w.orderOut(nil); self?.pulse = nil }
         }
     }
 }
 
-/// The last second of pointer positions, for the blue trail.
-final class TrailModel: ObservableObject {
-    @Published var points: [(CGPoint, TimeInterval)] = []
-    @Published var pulse: CircleGestureDetector.Gesture?
-    func add(_ p: CGPoint, at t: TimeInterval) {
-        points.append((p, t))
-        points.removeAll { t - $0.1 > 0.9 }
-    }
-}
-
-private struct TrailView: View {
-    @ObservedObject var model: TrailModel
-    let screenFrame: CGRect
-    @State private var pulseScale: CGFloat = 1
-
+private struct PulseRing: View {
+    let diameter: CGFloat
+    @State private var grow = false
     var body: some View {
-        ZStack {
-            Path { path in
-                let pts = model.points.map(local)
-                guard let first = pts.first else { return }
-                path.move(to: first)
-                pts.dropFirst().forEach { path.addLine(to: $0) }
-            }
-            .stroke(Color(red: 0.25, green: 0.55, blue: 1).opacity(0.55), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            if let g = model.pulse {
-                Circle()
-                    .stroke(Color(red: 0.25, green: 0.55, blue: 1), lineWidth: 3)
-                    .frame(width: g.radius * 2, height: g.radius * 2)
-                    .scaleEffect(pulseScale)
-                    .opacity(2 - Double(pulseScale))
-                    .position(local(g.center))
-                    .onAppear { pulseScale = 1; withAnimation(.easeOut(duration: 0.6)) { pulseScale = 1.6 } }
-                    .id(g.center.x + g.center.y)
-            }
-        }
-        .frame(width: screenFrame.width, height: screenFrame.height)
+        Circle()
+            .stroke(Color(red: 0.25, green: 0.55, blue: 1), lineWidth: 3)
+            .frame(width: diameter, height: diameter)
+            .scaleEffect(grow ? 1.25 : 1)
+            .opacity(grow ? 0 : 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onAppear { withAnimation(.easeOut(duration: 0.6)) { grow = true } }
     }
-
-    /// Screen point (bottom-left origin) → this view (top-left origin).
-    private func local(_ p: CGPoint) -> CGPoint { CGPoint(x: p.x - screenFrame.minX, y: screenFrame.maxY - p.y) }
-    private func local(_ e: (CGPoint, TimeInterval)) -> CGPoint { local(e.0) }
 }

@@ -25,3 +25,26 @@ final class RecordingLibraryTests: XCTestCase {
         XCTAssertEqual(RecordingLibrary.gb(20 * 1_073_741_824), "20.0 GB")
     }
 }
+
+final class DrawRegionTests: XCTestCase {
+    func testRegionCoversTheCircleWithAMargin() {
+        let g = CircleGestureDetector.Gesture(center: CGPoint(x: 500, y: 400), radius: 100)
+        let r = CircleCapture.region(for: g, screen: CGRect(x: 0, y: 0, width: 1440, height: 900), mainHeight: 900)
+        XCTAssertEqual(r.width, 260, accuracy: 0.5)        // 200 across, plus 30%
+        XCTAssertEqual(r.midX, 500, accuracy: 0.5)
+        XCTAssertEqual(r.midY, 900 - 400, accuracy: 0.5)   // flipped to a top-left origin
+    }
+
+    func testSmallCirclesStillGetAUsefulArea() {
+        let g = CircleGestureDetector.Gesture(center: CGPoint(x: 300, y: 300), radius: 20)
+        let r = CircleCapture.region(for: g, screen: CGRect(x: 0, y: 0, width: 1440, height: 900), mainHeight: 900)
+        XCTAssertEqual(r.width, 160, accuracy: 0.5)
+    }
+
+    func testRegionStaysOnScreen() {
+        let g = CircleGestureDetector.Gesture(center: CGPoint(x: 10, y: 10), radius: 80)
+        let r = CircleCapture.region(for: g, screen: CGRect(x: 0, y: 0, width: 1440, height: 900), mainHeight: 900)
+        XCTAssertGreaterThanOrEqual(r.minX, 0)
+        XCTAssertLessThanOrEqual(r.maxY, 900)
+    }
+}

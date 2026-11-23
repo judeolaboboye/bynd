@@ -281,6 +281,8 @@ private struct TasksMain: View {
                     EmptyView()
                 } below: { EmptyView() }
 
+                TasksUpNext().padding(.top, 22)
+
                 // Now
                 VStack(alignment: .leading, spacing: 10) {
                     if let c = tr.current {
@@ -300,7 +302,7 @@ private struct TasksMain: View {
                             .font(DF.font(13)).foregroundStyle(DF.faint)
                     }
                 }
-                .dfCard().padding(.top, 22)
+                .dfCard().padding(.top, 14)
 
                 // Your task events
                 Text("Your task events").font(DF.font(13, .semibold)).foregroundStyle(DF.muted).padding(.top, 26).padding(.bottom, 8)
@@ -417,5 +419,63 @@ private struct TaskRow: View {
             Button("Move to Trash", role: .destructive) { tr.remove(session, files: true) }
             Button("Cancel", role: .cancel) {}
         } message: { Text("The videos, polished copies and transcripts go to the Trash.") }
+    }
+}
+
+/// Your next switched-on task today, like the Meetings "Up next" card: when it starts, and once it's
+/// happening a button to start it. "×" = not this one (shows the next).
+private struct TasksUpNext: View {
+    @EnvironmentObject var calendars: CalendarStore
+    @ObservedObject private var tr = TaskRecording.shared
+    @ObservedObject private var recorder = RecorderController.shared
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { ctx in
+            if let e = next(at: ctx.date) { strip(e, now: ctx.date) }
+        }
+    }
+
+    private func next(at now: Date) -> CalEvent? {
+        guard calendars.anyConnected else { return nil }
+        let ids = TaskRecording.autoIDs()
+        let open = calendars.events(on: now).filter {
+            !$0.isAllDay && $0.end > now && ids.contains($0.id) && !calendars.isSkipped($0)
+        }
+        return open.filter { $0.start <= now }.max { $0.start < $1.start } ?? open.min { $0.start < $1.start }
+    }
+
+    private func strip(_ e: CalEvent, now: Date) -> some View {
+        let started = e.start <= now
+        let mins = max(1, Int((e.start.timeIntervalSince(now) / 60).rounded(.up)))
+        let when = started ? "Happening now" : mins < 60 ? "Up next \u{00B7} in \(mins) min" : "Up next \u{00B7} at \(e.start.formatted(date: .omitted, time: .shortened))"
+        let recordingThis = tr.recordingFor?.id == e.id
+        return HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 2).fill(Color(hex: e.colorHex == 0 ? 0x2F80ED : e.colorHex)).frame(width: 3, height: 38)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(recordingThis ? "Recording" : when).font(DF.font(13, .medium)).foregroundStyle(started ? DF.now : DF.muted)
+                HStack(spacing: 8) {
+                    Text(e.title).font(DF.font(15, .semibold)).lineLimit(1)
+                    Text("\(e.start.formatted(date: .omitted, time: .shortened)) \u{2013} \(e.end.formatted(date: .omitted, time: .shortened))")
+                        .font(DF.font(14)).foregroundStyle(DF.muted).lineLimit(1)
+                }
+            }
+            Spacer(minLength: 12)
+            if recordingThis {
+                Button("Stop task") { tr.stopTask() }.buttonStyle(.df(.secondary, height: 30))
+            } else if started {
+                Button { tr.begin(for: e) } label: {
+                    HStack(spacing: 7) { Circle().fill(DF.now).frame(width: 7, height: 7); Text("Start task now") }
+                }
+                .buttonStyle(.df(.secondary, height: 30))
+                .disabled(recorder.isRecording)
+            } else {
+                Label("Asks when it starts", systemImage: "checkmark").font(DF.font(13)).foregroundStyle(DF.muted)
+            }
+            Button { withAnimation(.snappy) { calendars.skip(e) } } label: { Image(systemName: "xmark") }
+                .buttonStyle(.dfIcon(size: 28))
+                .help("Not this one: show the next switched-on task")
+        }
+        .padding(.horizontal, 14).padding(.vertical, 11)
+        .background(DF.canvas, in: RoundedRectangle(cornerRadius: 8))
     }
 }

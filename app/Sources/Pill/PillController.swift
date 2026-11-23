@@ -56,7 +56,7 @@ final class PillController: ObservableObject {
             GuideModel.shared.toggleListening()
         }
         rk.onLeftHoldStart = { [weak self] in self?.startCircleDictation() }
-        rk.onLeftHoldEnd = { [weak self] in Task { await self?.finishDictation() } }
+        rk.onLeftHoldEnd = { [weak self] in self?.endCircleDictation() }
         rk.onMeeting = { [weak self] in self?.toggleMeeting() }
         rk.onDoubleTap = { [weak self] in self?.startHandsFree(into: .journal) }
         rk.onPasteLast = { [weak self] in self?.pasteLast() }
@@ -368,11 +368,26 @@ final class PillController: ObservableObject {
 
     /// Hold left ⌥: dictation, and every circle drawn with the pointer screenshots the screen.
     private var circling = false
+    /// Hold left ⌥: nothing shows and nothing records until you draw a circle. The first circle
+    /// screenshots that area and starts dictation; let go and the words and screenshots are pasted.
     func startCircleDictation() {
         if case .listening = state { return }
         circling = true
-        startDictation(into: .app)
-        CircleCapture.shared.start()
+        CircleCapture.shared.start(onFirstCircle: { [weak self] in
+            guard let self, self.circling else { return }
+            self.startDictation(into: .app)
+        }, onReleased: { [weak self] in self?.endCircleDictation() })
+    }
+
+    /// Left ⌥ released (or found to be up).
+    func endCircleDictation() {
+        guard circling else { return }
+        if case .listening = state {
+            Task { await finishDictation() }       // pastes the words, then the screenshots
+        } else {
+            circling = false                        // no circle drawn: nothing happened, nothing to do
+            CircleCapture.shared.stop()
+        }
     }
 
     func dismiss() { set(.resting) }

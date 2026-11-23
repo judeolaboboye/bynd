@@ -171,9 +171,11 @@ final class RightOptionKey {
 
     /// Another key went down with left ⌥: it's being used as a normal Option key.
     func leftOptionUsedAsModifier() {
-        guard leftDownAt != nil, !leftHolding else { return }
+        guard leftDownAt != nil else { return }
         leftUsed = true
         leftHoldWork?.cancel()
+        // Typing an ⌥ character: step aside (nothing was shown before a circle anyway).
+        if leftHolding { leftHolding = false; onLeftHoldEnd?() }
     }
 
     /// Returns true when the key was ours and should be swallowed.
