@@ -1,16 +1,28 @@
-# Oatmeal
+# Bynd
 
-Meeting notes and dictation for the Mac. Everything is transcribed on your Mac, and the notes are
-written by the AI you already pay for.
+**Bynd** means *to grow with you*. It's one Mac app that stays bonded to how you work and grows with you:
+meeting notes, dictation, journaling, screen captures, drawing on your screen, a voice guide and task
+recordings, all in one place instead of several separate apps. Everything is transcribed on your Mac, and
+the notes are written by the AI you already pay for.
 
-- **Oatmeal Notes** records your mic and the other side of the call (Zoom, Meet, Teams, FaceTime),
+Bynd brings together three open-source projects:
+
+- **[Oatmeal](https://github.com/judeolaboboye/oatmeal-bchong-meeting-diction-app)** by Branden Chong (MIT), the base
+  of the app: meeting notes, dictation, captures and the whole look of it. Branden did a really good job on the
+  UI, the icons, the fonts and the overall feel, so I've kept that design as it is.
+- **[BetterVoice](https://github.com/TarunTomar122/better-voice)** (MIT), the circle detection behind Draw.
+- **[Clicky](https://github.com/farzaa/clicky)** (MIT), the idea behind Guide.
+
+## What's in it
+
+- **Bynd Notes** records your mic and the other side of the call (Zoom, Meet, Teams, FaceTime),
   with no bot joining. When the meeting ends, Claude Code, Codex or Gemini CLI writes Granola-style
   notes from the transcript, on your own plan.
-- **Oatmeal Capture** records your screen with your face and voice (fn ⌘): pick an area, a window or
+- **Bynd Capture** records your screen with your face and voice (fn ⌘): pick an area, a window or
   the whole screen, your camera and mic. When you stop you get the raw video and a polished one, with
   zooms on your clicks and typing, a clean frame and your camera in the corner, plus a transcript. fn Space
   takes a screenshot. Both wait on a shelf to paste into your agent, and live in the Captures section.
-- **Oatmeal Flow** works in any app: tap right ⌥, talk, tap again (or hold right ⌥ for a quick one and
+- **Bynd Flow** works in any app: tap right ⌥, talk, tap again (or hold right ⌥ for a quick one and
   let go), and the words are typed where your
   cursor is. It drops the ums, follows "scratch that", and handles spoken punctuation.
 - **Journal**: double-tap right ⌥, talk as long as you like, tap right ⌥ to finish. It's transcribed and
@@ -22,17 +34,17 @@ written by the AI you already pay for.
 - **Guide** (inspired by [Clicky](https://github.com/farzaa/clicky), MIT): ask how to do anything, by
   voice (right ⌥ G) or text. It looks at your screen, answers out loud with the Mac's voice and points at
   things. It thinks with Claude Code on your own plan; no API keys.
-- **Tasks**: work on something while Oatmeal records your screen and face (no call, nobody else), to pick
+- **Tasks**: work on something while Bynd records your screen and face (no call, nobody else), to pick
   stills and clips for b-roll later. Start one from the Tasks section, or let your calendar do it: during
-  working hours (events containing a word you pick, "Work" by default) Oatmeal asks "Are you working?"
+  working hours (events containing a word you pick, "Work" by default) Bynd asks "Are you working?"
   and on yes records until the event ends. Every task and its videos are listed in Tasks.
 - **Keys**: every shortcut on one page.
 
 ## How notes get written
 
-Oatmeal runs a small MCP server on your Mac (`http://127.0.0.1:29985/mcp`). When a meeting is saved,
+Bynd runs a small MCP server on your Mac (`http://127.0.0.1:29985/mcp`). When a meeting is saved,
 it starts whichever CLI you picked in Settings and gives it just two tools: read the meeting, and save
-its notes. Nothing goes to an Oatmeal server.
+its notes. Nothing goes to a Bynd server.
 
 | Writer | Runs | Uses |
 |---|---|---|
@@ -48,8 +60,8 @@ your meetings. The tools are `list_meetings`, `get_meeting`, `update_meeting` an
 
 ## The website
 
-`site/` is Oatmeal's website and a Whop blueprint: landing page, download, sign-in, and the small API
-the Mac app signs in with. Oatmeal is free, so there are no plans or prices. Anyone can deploy their own copy;
+`site/` is Bynd's website and a Whop blueprint: landing page, download, sign-in, and the small API
+the Mac app signs in with. Bynd is free, so there are no plans or prices. Anyone can deploy their own copy;
 see [site/README.md](site/README.md).
 
 ## Features
@@ -69,10 +81,10 @@ You need macOS 26 or later, Xcode 26 or later, and [XcodeGen](https://github.com
 brew install xcodegen
 cd app
 xcodegen generate
-open Oatmeal.xcodeproj
+open Bynd.xcodeproj
 ```
 
-Then run the `Oatmeal` scheme. Tests: `xcodebuild -project Oatmeal.xcodeproj -scheme Oatmeal test`.
+Then run the `Bynd` scheme. Tests: `xcodebuild -project Bynd.xcodeproj -scheme Bynd test`.
 
 ### Signing
 
@@ -87,12 +99,12 @@ permissions, sign with your own certificate: copy `app/Config/Signing.local.exam
 site/           the website and Whop blueprint (TanStack Start on Whop hosting)
 app/
   Packages/Lurker  Lurker's recorder and editing engine, copied in: it records captures and renders the
-                   polished version (Oatmeal adds mic recording and the camera bubble)
+                   polished version (Bynd adds mic recording and the camera bubble)
   Sources/
     Account/    connecting to a site and signing in
     App/        app entry, app state, logging
     Capture/    screenshots, the recorder (start bar, camera bubble, controls) and the shelf
-    Design/     colours, type, and Oatmeal's own controls (buttons, menus, dialogs, switches)
+    Design/     colours, type, and Bynd's own controls (buttons, menus, dialogs, switches)
     MCP/        the local MCP server, its tools, and the Claude Code / Codex / Gemini note writers
     Pill/       the floating pill and the right ⌥ key
     Voice/      recording, system audio, speech models, dictation and text clean-up
@@ -103,6 +115,6 @@ app/
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Young Serif and Figtree are under the SIL Open Font License
+MIT, see [LICENSE](LICENSE). Bynd keeps Oatmeal's MIT licence and Branden Chong's copyright. Young Serif and Figtree are under the SIL Open Font License
 (`app/Resources/Fonts/OFL.txt`). Claude, ChatGPT, Gemini and the calendar logos belong to their
 owners and are only used to show which service a setting refers to.
